@@ -67,7 +67,7 @@ html = response.body
 pid = html[/\bpid[ \t]+:[ \t]+'([a-z0-9]+)'/, 1]
 title = ( html[%r!<title>([^<]+)</title>!, 1].split(/ - /).last +
           ' - ' +
-          html[%r!<h2>([^<]+)</h2>!, 1] ).gsub(/\//, '.')
+          html[%r!<h2>([^<]+)</h2>!, 1] ).gsub(/[^a-z0-9 \-]+/i, '')
 
 # Get the auth URL
 r = (rand * 10000000).floor
