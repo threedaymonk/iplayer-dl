@@ -47,13 +47,13 @@ def http_get(location, headers={}, &blk)
   http.request_get(path, DEFAULT_HEADERS.merge(headers), &blk)
 end
 
-page_url, title, = ARGV
+page_url = ARGV[0]
 
 unless page_url
   puts "Download DRM-free videos from the BBC iPlayer, courtesy of their iPhone interface."
   puts
-  puts "Usage: #{$0} URL (name)"
-  puts "Where URL is the iPlayer viewing page and name is an optional filename (.mp4 is added automatically)."
+  puts "Usage: #{$0} URL"
+  puts "Where URL is the iPlayer viewing page."
   exit 1
 end
 
@@ -65,7 +65,9 @@ html = response.body
 
 # The only information we really need is the pid
 pid = html[/\bpid[ \t]+:[ \t]+'([a-z0-9]+)'/, 1]
-title ||= html[%r!<title>([^<]+)</title>!, 1].split(/ - /).last
+title = ( html[%r!<title>([^<]+)</title>!, 1].split(/ - /).last +
+          ' - ' +
+          html[%r!<h2>([^<]+)</h2>!, 1] ).gsub(/\//, '.')
 
 # Get the auth URL
 r = (rand * 10000000).floor
@@ -87,7 +89,7 @@ max = response.to_hash['content-range'][/\d+$/].to_i
 
 bytes_got = 0
 old_percentage = nil
-File.open("#{ title }.mp4", 'wb') do |io|
+File.open("#{ title }.mov", 'wb') do |io|
   http_get( location,
             'Cookie'     => cookies,
             'User-Agent' => QT_UA,
