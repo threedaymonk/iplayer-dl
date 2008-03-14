@@ -1,0 +1,106 @@
+#!/usr/bin/env ruby
+
+# Download iPlayer programmes by spoofing an iPhone
+# Paul Battley - http://po-ru.com/
+
+require 'net/http'
+require 'uri'
+
+# Used by Safari Mobile
+IPHONE_UA  = 'Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420+ '+
+             '(KHTML, like Gecko) Version/3.0 Mobile/1A543a Safari/419.3'
+# Used by Quicktime
+QT_UA      = 'Apple iPhone v1.1.3 CoreMedia v1.0.0.4A93'
+
+DEFAULT_HEADERS = {
+  'Accept'          => '*/*',
+  'Accept-Language' => 'en',
+  'Accept-Encoding' => 'gzip, deflate',
+  'Connection'      => 'keep-alive',
+  'Pragma'          => 'no-cache'
+}
+
+class Net::HTTPResponse # Monkey-patch in some 21st-century functionality
+  include Enumerable
+  
+  def cookies
+    inject([]){ |acc, (key, value)|
+      key == 'set-cookie' ? acc << value.split(/;/).first : acc
+    }
+  end
+  
+  def to_hash
+    @to_hash ||= inject({}){ |hash, (key, value)|
+      hash[key] = value
+      hash
+    }
+  end
+end
+
+def http_get(location, headers={}, &blk)
+  url = URI.parse(location)
+  http = Net::HTTP.new(url.host, url.port)
+  path = url.path
+  if url.query
+    path << '?' << url.query
+  end
+  http.request_get(path, DEFAULT_HEADERS.merge(headers), &blk)
+end
+
+page_url, title, = ARGV
+
+unless page_url
+  puts "Download DRM-free videos from the BBC iPlayer, courtesy of their iPhone interface."
+  puts
+  puts "Usage: #{$0} URL (name)"
+  puts "Where URL is the iPlayer viewing page and name is an optional filename (.mp4 is added automatically)."
+  exit 1
+end
+
+# Get the actual programme page
+response = http_get( page_url,
+                     'User-Agent' => IPHONE_UA )
+cookies = response.cookies.join('; ')
+html = response.body
+
+# The only information we really need is the pid
+pid = html[/\bpid[ \t]+:[ \t]+'([a-z0-9]+)'/, 1]
+title ||= html[%r!<title>([^<]+)</title>!, 1].split(/ - /).last
+
+# Get the auth URL
+r = (rand * 10000000).floor
+selector = "http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/#{ pid }?#{r}"
+response = http_get( selector, 
+                     'Cookie'     => cookies,
+                     'User-Agent' => QT_UA,
+                     'Range'      => 'bytes=0-1' )
+
+# It redirects us to the real stream location
+location = response.to_hash['location']
+response = http_get( location,
+                     'Cookie'     => cookies,
+                     'User-Agent' => QT_UA,
+                     'Range'      => 'bytes=0-1' )
+
+# We now know the full length of the content
+max = response.to_hash['content-range'][/\d+$/].to_i
+
+bytes_got = 0
+old_percentage = nil
+File.open("#{ title }.mp4", 'wb') do |io|
+  http_get( location,
+            'Cookie'     => cookies,
+            'User-Agent' => QT_UA,
+            'Range'      => "bytes=0-#{max}" ) do |response|
+    response.read_body do |data|
+      bytes_got += data.length
+      percentage = "%.1f" % [((1000 * bytes_got) / max) / 10.0]
+      if percentage != old_percentage
+        old_percentage = percentage
+        print "\r#{percentage}%"
+        $stdout.flush
+      end
+      io << data
+    end
+  end
+end
