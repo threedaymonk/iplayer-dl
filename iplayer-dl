@@ -89,7 +89,8 @@ max = response.to_hash['content-range'][/\d+$/].to_i
 
 bytes_got = 0
 old_percentage = nil
-File.open("#{ title }.mov", 'wb') do |io|
+filename = "#{ title }.mov"
+File.open(filename, 'wb') do |io|
   http_get( location,
             'Cookie'     => cookies,
             'User-Agent' => QT_UA,
@@ -99,7 +100,7 @@ File.open("#{ title }.mov", 'wb') do |io|
       percentage = "%.1f" % [((1000 * bytes_got) / max) / 10.0]
       if percentage != old_percentage
         old_percentage = percentage
-        print "\r#{percentage}%"
+        print "\r#{ percentage }% #{ filename }"
         $stdout.flush
       end
       io << data
