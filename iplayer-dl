@@ -12,6 +12,13 @@ IPHONE_UA  = 'Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420+ '+
 # Used by Quicktime
 QT_UA      = 'Apple iPhone v1.1.3 CoreMedia v1.0.0.4A93'
 
+if http_proxy = ENV['http_proxy']
+  proxy_url = URI.parse(http_proxy)
+  HTTP = Net::HTTP::Proxy(proxy_url.host, proxy_url.port)
+else
+  HTTP = Net::HTTP
+end
+
 DEFAULT_HEADERS = {
   'Accept'          => '*/*',
   'Accept-Language' => 'en',
@@ -39,7 +46,7 @@ end
 
 def http_get(location, headers={}, &blk)
   url = URI.parse(location)
-  http = Net::HTTP.new(url.host, url.port)
+  http = HTTP.new(url.host, url.port)
   path = url.path
   if url.query
     path << '?' << url.query
