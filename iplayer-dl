@@ -86,6 +86,11 @@ response = http_get( selector,
 
 # It redirects us to the real stream location
 location = response.to_hash['location']
+if location =~ /error\.shtml/
+  $stderr.puts "This file does not appear to be available."
+  exit 1
+end
+
 response = http_get( location,
                      'Cookie'     => cookies,
                      'User-Agent' => QT_UA,
