@@ -112,11 +112,13 @@ File.open(filename, 'wb') do |io|
       percentage = "%.1f" % [((1000 * bytes_got) / max) / 10.0]
       if percentage != old_percentage
         old_percentage = percentage
-        print "\r#{ percentage }% #{ filename }"
-        $stdout.flush
+        if $stdout.tty?
+          print "\r#{ percentage }% #{ filename }"
+          $stdout.flush
+        end
       end
       io << data
     end
   end
 end
-puts
+puts if $stdout.tty?
