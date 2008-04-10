@@ -9,8 +9,9 @@ require 'uri'
 # Used by Safari Mobile
 IPHONE_UA  = 'Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420+ '+
              '(KHTML, like Gecko) Version/3.0 Mobile/1A543a Safari/419.3'
+
 # Used by Quicktime
-QT_UA      = 'Apple iPhone v1.1.3 CoreMedia v1.0.0.4A93'
+QT_UA      = 'Apple iPhone v1.1.4 CoreMedia v1.0.0.4A102'
 
 if http_proxy = ENV['http_proxy']
   proxy_url = URI.parse(http_proxy)
