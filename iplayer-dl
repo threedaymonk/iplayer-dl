@@ -72,7 +72,7 @@ cookies = response.cookies.join('; ')
 html = response.body
 
 # The only information we really need is the pid
-pid = html[/\bpid[ \t]+:[ \t]+'([a-z0-9]+)'/, 1]
+pid = html.scan(/\bpid[ \t]+:[ \t]+'([a-z0-9]+)'/).last
 title = ( html[%r!<title>([^<]+)</title>!, 1].split(/ - /).last +
           ' - ' +
           html[%r!<h2>([^<]+)</h2>!, 1] ).gsub(/[^a-z0-9 \-]+/i, '')
