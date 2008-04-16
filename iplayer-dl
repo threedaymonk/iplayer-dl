@@ -5,6 +5,7 @@
 
 require 'net/http'
 require 'uri'
+require 'date'
 
 # Used by Safari Mobile
 IPHONE_UA  = 'Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420+ '+
@@ -12,6 +13,9 @@ IPHONE_UA  = 'Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420+ '+
 
 # Used by Quicktime
 QT_UA      = 'Apple iPhone v1.1.4 CoreMedia v1.0.0.4A102'
+
+# Most people will prefer the non-sign-language version
+TYPE_PREFERENCE = %w[Original Signed]
 
 if http_proxy = ENV['http_proxy']
   proxy_url = URI.parse(http_proxy)
@@ -55,6 +59,12 @@ def http_get(location, headers={}, &blk)
   http.request_get(path, DEFAULT_HEADERS.merge(headers), &blk)
 end
 
+def js_date(digit_string)
+  digits = digit_string.scan(/\d+/).map{ |d| d.to_i }
+  digits[1] += 1 # Zero-indexed months
+  DateTime.civil(*digits)
+end
+
 page_url = ARGV[0]
 
 unless page_url
@@ -71,8 +81,36 @@ response = http_get( page_url,
 cookies = response.cookies.join('; ')
 html = response.body
 
-# The only information we really need is the pid
-pid = html.scan(/\bpid[ \t]+:[ \t]+'([a-z0-9]+)'/).last
+# Poor man's JavaScript parser to evaluate the multiple versions
+begin
+  versions = html[/iplayer\.versions = \[.*?\];/m].split(/\},\s*\{/)
+rescue
+  $stderr.puts "The BBC iPlayer appears to have changed.",
+               "Please look for an updated version of this script."
+  exit 1
+end
+# Find out which versions are available right now
+available_versions = versions.inject({}){ |a, e|
+  begin
+    type = e[/ type \s* : \s* ' ( [^']+ ) ' /x, 1]
+    pid  = e[/ pid  \s* : \s* ' ( [^']+ ) ' /x, 1]
+    mp4  = e[/ iplayer_streaming_http_mp4 \s* : \s* \[ ( [^\]]+ ) /x, 1]
+    mp4_start = js_date(mp4[/ start \s* : \s* new \s+ Date\( ( [^\)]+ ) /x, 1])
+    mp4_end   = js_date(mp4[/ end   \s* : \s* new \s+ Date\( ( [^\)]+ ) /x, 1])
+    now = DateTime.now
+    if (now >= mp4_start && now <= mp4_end)
+      a[type] = pid
+    end
+  rescue
+  end
+  a
+}
+if available_versions.empty?
+  $stderr.puts "This programme is not currently available in an MP4 version."
+  exit 1
+end
+type, pid = available_versions.sort_by{ |t, p| TYPE_PREFERENCE.index(t) }.first
+
 title = ( html[%r!<title>([^<]+)</title>!, 1].split(/ - /).last +
           ' - ' +
           html[%r!<h2>([^<]+)</h2>!, 1] ).gsub(/[^a-z0-9 \-]+/i, '')
@@ -114,7 +152,7 @@ File.open(filename, 'wb') do |io|
       if percentage != old_percentage
         old_percentage = percentage
         if $stdout.tty?
-          print "\r#{ percentage }% #{ filename }"
+          print "\r#{ percentage }% #{ filename } (#{ type })"
           $stdout.flush
         end
       end
