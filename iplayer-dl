@@ -148,14 +148,21 @@ response = http_get( location,
 # We now know the full length of the content
 max = response.to_hash['content-range'][/\d+$/].to_i
 
-bytes_got = 0
 old_percentage = nil
 filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
-File.open(filename, 'wb') do |io|
+if File.exist?(filename)
+  start = File.size(filename)
+  puts "Resuming download." if $stdout.tty?
+else
+  start = 0
+end
+bytes_got = start
+
+File.open(filename, 'a+b') do |io|
   http_get( location,
             'Cookie'     => cookies,
             'User-Agent' => QT_UA,
-            'Range'      => "bytes=0-#{max}" ) do |response|
+            'Range'      => "bytes=#{start}-" ) do |response|
     response.read_body do |data|
       bytes_got += data.length
       percentage = "%.1f" % [((1000 * bytes_got) / max) / 10.0]
