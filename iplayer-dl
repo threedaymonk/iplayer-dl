@@ -6,6 +6,7 @@
 require 'net/http'
 require 'uri'
 require 'date'
+require 'rexml/document'
 
 # Used by Safari Mobile
 IPHONE_UA  = 'Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420+ '+
@@ -16,6 +17,9 @@ QT_UA      = 'Apple iPhone v1.1.4 CoreMedia v1.0.0.4A102'
 
 # Most people will prefer the non-sign-language version
 TYPE_PREFERENCE = %w[Original Signed]
+
+PROGRAMME_URL = 'http://www.bbc.co.uk/iplayer/page/item/%s.shtml'
+METADATA_URL  = 'http://www.bbc.co.uk/iplayer/metafiles/episode/%s.xml'
 
 if http_proxy = ENV['http_proxy']
   proxy_url = URI.parse(http_proxy)
@@ -66,12 +70,15 @@ def js_date(digit_string)
 end
 
 page_url = ARGV[0]
+if page_url =~ /^[a-z0-9]{8}$/
+  page_url = PROGRAMME_URL % page_url
+end
 
 unless page_url
   puts "Download DRM-free videos from the BBC iPlayer, courtesy of their iPhone interface."
   puts
-  puts "Usage: #{$0} URL"
-  puts "Where URL is the iPlayer viewing page."
+  puts "Usage: #{$0} PROGRAMME"
+  puts "Where PROGRAMME is the iPlayer viewing page or the PID of the programme."
   exit 1
 end
 
@@ -83,7 +90,8 @@ html = response.body
 
 # Poor man's JavaScript parser to evaluate the multiple versions
 begin
-  versions = html[/iplayer\.versions = \[.*?\];/m].split(/\},\s*\{/)
+  versions = html[/ iplayer\.versions \s* = \s* \[ .*? \]; /mx].split(/\},\s*\{/)
+  pid      = html[/ iplayer\.pid \s* = \s* '([a-z0-9]{8})' /x, 1]
 rescue
   $stderr.puts "The BBC iPlayer appears to have changed.",
                "Please look for an updated version of this script."
@@ -93,13 +101,13 @@ end
 available_versions = versions.inject({}){ |a, e|
   begin
     type = e[/ type \s* : \s* ' ( [^']+ ) ' /x, 1]
-    pid  = e[/ pid  \s* : \s* ' ( [^']+ ) ' /x, 1]
+    vpid = e[/ pid  \s* : \s* ' ( [^']+ ) ' /x, 1]
     mp4  = e[/ iplayer_streaming_http_mp4 \s* : \s* \[ ( [^\]]+ ) /x, 1]
     mp4_start = js_date(mp4[/ start \s* : \s* new \s+ Date\( ( [^\)]+ ) /x, 1])
     mp4_end   = js_date(mp4[/ end   \s* : \s* new \s+ Date\( ( [^\)]+ ) /x, 1])
     now = DateTime.now
     if (now >= mp4_start && now <= mp4_end)
-      a[type] = pid
+      a[type] = vpid
     end
   rescue
   end
@@ -109,15 +117,17 @@ if available_versions.empty?
   $stderr.puts "This programme is not currently available in an MP4 version."
   exit 1
 end
-type, pid = available_versions.sort_by{ |t, p| TYPE_PREFERENCE.index(t) }.first
+type, version_pid = available_versions.sort_by{ |t, p| TYPE_PREFERENCE.index(t) }.first
 
-title = ( html[%r!<title>([^<]+)</title>!, 1].split(/ - /).last +
-          ' - ' +
-          html[%r!<h2>([^<]+)</h2>!, 1] ).gsub(/[^a-z0-9 \-]+/i, '')
+# Fetch the metadata
+metadata = REXML::Document.new( http_get(METADATA_URL % pid).body )
+title    = REXML::XPath.first(metadata, '//iplayerMedia/concept/title').text
+subtitle = REXML::XPath.first(metadata, '//iplayerMedia/concept/subtitle').text rescue nil
+title << ' - ' << subtitle if subtitle
 
 # Get the auth URL
 r = (rand * 10000000).floor
-selector = "http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/#{ pid }?#{r}"
+selector = "http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/#{ version_pid }?#{r}"
 response = http_get( selector, 
                      'Cookie'     => cookies,
                      'User-Agent' => QT_UA,
@@ -140,7 +150,7 @@ max = response.to_hash['content-range'][/\d+$/].to_i
 
 bytes_got = 0
 old_percentage = nil
-filename = "#{ title }.mov"
+filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
 File.open(filename, 'wb') do |io|
   http_get( location,
             'Cookie'     => cookies,
