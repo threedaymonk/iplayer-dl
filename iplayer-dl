@@ -117,7 +117,7 @@ if available_versions.empty?
   $stderr.puts "This programme is not currently available in an MP4 version."
   exit 1
 end
-type, version_pid = available_versions.sort_by{ |t, p| TYPE_PREFERENCE.index(t) }.first
+type, version_pid = available_versions.sort_by{ |t, p| TYPE_PREFERENCE.index(t) || 100 }.first
 
 # Fetch the metadata
 metadata = REXML::Document.new( http_get(METADATA_URL % pid).body )
