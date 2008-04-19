@@ -93,7 +93,7 @@ html = response.body
 
 # Poor man's JavaScript parser to evaluate the multiple versions
 begin
-  versions = html[/ iplayer\.versions \s* = \s* \[ .*? \]; /mx].split(/\},\s*\{/)
+  versions = html[/ iplayer\.versions \s* = \s* \[ .*? \]; /mx].split(/filesize/)
   pid      = html[/ iplayer\.pid \s* = \s* '([a-z0-9]{8})' /x, 1]
 rescue
   $stderr.puts "The BBC iPlayer appears to have changed.",
