@@ -95,26 +95,28 @@ html = response.body
 begin
   versions = html[/ iplayer\.versions \s* = \s* \[ .*? \]; /mx].split(/filesize/)
   pid      = html[/ iplayer\.pid \s* = \s* '([a-z0-9]{8})' /x, 1]
-rescue
+rescue => e
   $stderr.puts "The BBC iPlayer appears to have changed.",
                "Please look for an updated version of this script."
   exit 1
 end
 # Find out which versions are available right now
-available_versions = versions.inject({}){ |a, e|
+available_versions = versions.inject({}){ |acc, e|
   begin
     type = e[/ type \s* : \s* ' ( [^']+ ) ' /x, 1]
     vpid = e[/ pid  \s* : \s* ' ( [^']+ ) ' /x, 1]
     mp4  = e[/ iplayer_streaming_http_mp4 \s* : \s* \[ ( [^\]]+ ) /x, 1]
-    mp4_start = js_date(mp4[/ start \s* : \s* new \s+ Date\( ( [^\)]+ ) /x, 1])
-    mp4_end   = js_date(mp4[/ end   \s* : \s* new \s+ Date\( ( [^\)]+ ) /x, 1])
+    mp4_starts = mp4.scan(/ start \s* : \s* new \s+ Date\( ( [^\)]+ ) /x)
+    mp4_ends   = mp4.scan(/ end   \s* : \s* new \s+ Date\( ( [^\)]+ ) /x)
     now = DateTime.now
-    if (now >= mp4_start && now <= mp4_end)
-      a[type] = vpid
+    mp4_starts.zip(mp4_ends).each do |a, b|
+      if (now >= js_date(a[0]) && now <= js_date(b[0]))
+        acc[type] = vpid
+      end
     end
   rescue
   end
-  a
+  acc
 }
 if available_versions.empty?
   $stderr.puts "This programme is not currently available in an MP4 version."
