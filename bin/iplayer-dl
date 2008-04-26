@@ -1,0 +1,121 @@
+#!/usr/bin/env ruby
+
+# Download iPlayer programmes by spoofing an iPhone
+# Paul Battley - http://po-ru.com/
+#
+# Get the latest version via subversion:
+# svn co http://paulbattley.googlecode.com/svn/iplayer-dl
+
+require 'iplayer'
+require 'iplayer/javascript'
+include IPlayer
+
+# Most people will prefer the non-sign-language version
+TYPE_PREFERENCE = %w[Original Signed]
+
+PROGRAMME_URL = 'http://www.bbc.co.uk/iplayer/page/item/%s.shtml'
+
+page_url = ARGV[0]
+if page_url =~ /^[a-z0-9]{8}$/
+  page_url = PROGRAMME_URL % page_url
+end
+
+unless page_url
+  puts "Download DRM-free videos from the BBC iPlayer, courtesy of their iPhone interface."
+  puts
+  puts "Usage: #{$0} PROGRAMME"
+  puts "Where PROGRAMME is the iPlayer viewing page or the PID of the programme."
+  exit 1
+end
+
+if http_proxy = ENV['http_proxy']
+  proxy_url = URI.parse(http_proxy)
+  http = Net::HTTP::Proxy(proxy_url.host, proxy_url.port)
+else
+  http = Net::HTTP
+end
+browser = Browser.new(http)
+
+# Get the actual programme page
+response = browser.get( page_url,
+                        'User-Agent' => Browser::IPHONE_UA )
+cookies = response.cookies.join('; ')
+html = response.body
+
+begin
+  versions = JavaScript.parse(html[/ iplayer\.versions \s* = \s* ( \[ .*? \] ); /mx, 1])
+  pid      = html[/ iplayer\.pid \s* = \s* '([a-z0-9]{8})' /x, 1]
+rescue => e
+  $stderr.puts "The BBC iPlayer appears to have changed.",
+               "Please look for an updated version of this script."
+  exit 1
+end
+available_versions = versions.inject([]){ |av, version|
+  if (version[:iplayer_streaming_http_mp4].any?{ |stream|
+        stream[:start] < DateTime.now && stream[:end] > DateTime.now })
+    av << [version[:type], version[:pid]]
+  end
+  av
+}
+if available_versions.empty?
+  $stderr.puts "This programme is not currently available in an MP4 version."
+  exit 1
+end
+type, version_pid = available_versions.sort_by{ |t, p| TYPE_PREFERENCE.index(t) || 100 }.first
+
+# Fetch the metadata
+title = Metadata.new(pid, browser).full_title
+
+# Get the auth URL
+r = (rand * 10000000).floor
+selector = "http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/#{ version_pid }?#{r}"
+response = browser.get( selector, 
+                        'Cookie'     => cookies,
+                        'User-Agent' => Browser::QT_UA,
+                        'Range'      => 'bytes=0-1' )
+
+# It redirects us to the real stream location
+location = response.to_hash['location']
+if location =~ /error\.shtml/
+  $stderr.puts "This file does not appear to be available."
+  exit 1
+end
+
+response = browser.get( location,
+                        'Cookie'     => cookies,
+                        'User-Agent' => Browser::QT_UA,
+                        'Range'      => 'bytes=0-1' )
+
+# We now know the full length of the content
+max = response.to_hash['content-range'][/\d+$/].to_i
+
+old_percentage = nil
+filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+if File.exist?(filename)
+  start = File.size(filename)
+  puts "Resuming download." if $stdout.tty?
+else
+  start = 0
+end
+bytes_got = start
+
+File.open(filename, 'a+b') do |io|
+  browser.get( location,
+               'Cookie'     => cookies,
+               'User-Agent' => Browser::QT_UA,
+               'Range'      => "bytes=#{start}-" ) do |response|
+    response.read_body do |data|
+      bytes_got += data.length
+      percentage = "%.1f" % [((1000 * bytes_got) / max) / 10.0]
+      if percentage != old_percentage
+        old_percentage = percentage
+        if $stdout.tty?
+          print "\r#{ percentage }% #{ filename } (#{ type })"
+          $stdout.flush
+        end
+      end
+      io << data
+    end
+  end
+end
+puts if $stdout.tty?

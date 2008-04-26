@@ -1,5 +1,5 @@
-require 'javascript/tokenizer'
-require 'javascript/parser'
+require 'iplayer/javascript/tokenizer'
+require 'iplayer/javascript/parser'
 
 module IPlayer
 module JavaScript
