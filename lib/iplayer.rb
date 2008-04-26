@@ -1,2 +1,5 @@
+require 'iplayer/errors'
 require 'iplayer/browser'
 require 'iplayer/metadata'
+require 'iplayer/javascript'
+require 'iplayer/downloader'

@@ -7,24 +7,23 @@
 # svn co http://paulbattley.googlecode.com/svn/iplayer-dl
 
 require 'iplayer'
-require 'iplayer/javascript'
+
 include IPlayer
+include IPlayer::Errors
 
 # Most people will prefer the non-sign-language version
 TYPE_PREFERENCE = %w[Original Signed]
 
-PROGRAMME_URL = 'http://www.bbc.co.uk/iplayer/page/item/%s.shtml'
-
-page_url = ARGV[0]
-if page_url =~ /^[a-z0-9]{8}$/
-  page_url = PROGRAMME_URL % page_url
+pid = ARGV[0]
+if pid =~ %r!/item/([a-z0-9]{8})!
+  pid = $1
 end
 
-unless page_url
+unless pid
   puts "Download DRM-free videos from the BBC iPlayer, courtesy of their iPhone interface."
   puts
-  puts "Usage: #{$0} PROGRAMME"
-  puts "Where PROGRAMME is the iPlayer viewing page or the PID of the programme."
+  puts "Usage: #{$0} identifier"
+  puts "Where identifier is the iPlayer viewing page or the PID of the programme."
   exit 1
 end
 
@@ -35,87 +34,52 @@ else
   http = Net::HTTP
 end
 browser = Browser.new(http)
-
-# Get the actual programme page
-response = browser.get( page_url,
-                        'User-Agent' => Browser::IPHONE_UA )
-cookies = response.cookies.join('; ')
-html = response.body
+downloader = Downloader.new(browser, pid)
 
 begin
-  versions = JavaScript.parse(html[/ iplayer\.versions \s* = \s* ( \[ .*? \] ); /mx, 1])
-  pid      = html[/ iplayer\.pid \s* = \s* '([a-z0-9]{8})' /x, 1]
-rescue => e
-  $stderr.puts "The BBC iPlayer appears to have changed.",
-               "Please look for an updated version of this script."
-  exit 1
-end
-available_versions = versions.inject([]){ |av, version|
-  if (version[:iplayer_streaming_http_mp4].any?{ |stream|
-        stream[:start] < DateTime.now && stream[:end] > DateTime.now })
-    av << [version[:type], version[:pid]]
+  available_versions = downloader.available_versions
+  raise MP4Unavailable if available_versions.empty?
+  version = available_versions.sort_by{ |v| 
+    TYPE_PREFERENCE.index(v.name) || 100 
+  }.first
+  title = Metadata.new(pid, browser).full_title
+  filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+
+  old_percentage = nil
+  if File.exist?(filename)
+    offset = File.size(filename)
+    $stderr.puts "Resuming download at #{offset} bytes."
+  else
+    offset = 0
   end
-  av
-}
-if available_versions.empty?
-  $stderr.puts "This programme is not currently available in an MP4 version."
-  exit 1
-end
-type, version_pid = available_versions.sort_by{ |t, p| TYPE_PREFERENCE.index(t) || 100 }.first
 
-# Fetch the metadata
-title = Metadata.new(pid, browser).full_title
-
-# Get the auth URL
-r = (rand * 10000000).floor
-selector = "http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/#{ version_pid }?#{r}"
-response = browser.get( selector, 
-                        'Cookie'     => cookies,
-                        'User-Agent' => Browser::QT_UA,
-                        'Range'      => 'bytes=0-1' )
-
-# It redirects us to the real stream location
-location = response.to_hash['location']
-if location =~ /error\.shtml/
-  $stderr.puts "This file does not appear to be available."
-  exit 1
-end
-
-response = browser.get( location,
-                        'Cookie'     => cookies,
-                        'User-Agent' => Browser::QT_UA,
-                        'Range'      => 'bytes=0-1' )
-
-# We now know the full length of the content
-max = response.to_hash['content-range'][/\d+$/].to_i
-
-old_percentage = nil
-filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
-if File.exist?(filename)
-  start = File.size(filename)
-  puts "Resuming download." if $stdout.tty?
-else
-  start = 0
-end
-bytes_got = start
-
-File.open(filename, 'a+b') do |io|
-  browser.get( location,
-               'Cookie'     => cookies,
-               'User-Agent' => Browser::QT_UA,
-               'Range'      => "bytes=#{start}-" ) do |response|
-    response.read_body do |data|
-      bytes_got += data.length
-      percentage = "%.1f" % [((1000 * bytes_got) / max) / 10.0]
+  File.open(filename, 'a+b') do |io|
+    downloader.download(version.pid, io, offset) do |position, max|
+      percentage = "%.1f" % [((1000 * position) / max) / 10.0]
       if percentage != old_percentage
         old_percentage = percentage
-        if $stdout.tty?
-          print "\r#{ percentage }% #{ filename } (#{ type })"
-          $stdout.flush
-        end
+        $stderr.print "\r#{ percentage }% #{ filename } (#{ version.name })"
+        $stderr.flush
       end
-      io << data
     end
   end
+  $stderr.puts
+
+rescue ParsingError    
+  $stderr.puts(
+    "Unable to parse the programme page. Possible reasons:",
+    "1. The iPlayer has changed", 
+    "2. You are outside the UK (and not using a UK proxy)."
+  )
+  exit 1
+rescue FileUnavailable
+  $stderr.puts(
+    "An MP4 URL was found, but the download failed."
+  )
+  exit 1
+rescue MP4Unavailable
+  $stderr.puts(
+    "This programme is not currently available in an MP4 version."
+  )
+  exit 1
 end
-puts if $stdout.tty?
