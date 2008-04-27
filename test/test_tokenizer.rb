@@ -1,4 +1,4 @@
-$:.unshift( File.join( File.dirname(__FILE__), '..', 'lib' ))
+$:.unshift( File.join( '..', 'lib' ))
 require 'test/unit'
 require 'iplayer/javascript/tokenizer'
 

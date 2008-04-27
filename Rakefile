@@ -1,39 +1,33 @@
-require 'rubygems'
-require 'rake/gempackagetask'
 require 'rake/testtask'
-require 'zlib'
-require 'rake/clean'
-require 'rexml/document'
+require 'rake/packagetask'
+require 'rake/rdoctask'
+require 'rake'
+require 'find'
 
-$:.unshift(File.dirname(__FILE__) + '/lib')
+# Globals
 
-CLEAN.include('doc')
-SOURCES = FileList['lib/**/*.rb']
+PKG_NAME = 'iplayer-dl'
+PKG_VERSION = '0.1.0'
+
+PKG_FILES = ['README', 'setup.rb', 'Rakefile']
+Find.find('lib/', 'test/', 'bin/') do |f|
+	if FileTest.directory?(f) and f =~ /\.svn/
+		Find.prune
+	else
+		PKG_FILES << f
+	end
+end
+
+# Tasks
 
 task :default => :test
 
-spec = Gem::Specification.new do |s|
-	svn_info = REXML::Document.new(`svn info --xml`)
-
-  s.version      = '0.1.' + REXML::XPath.first(svn_info, '//entry').attributes['revision']
-  s.name         = 'iplayer-dl'
-  s.author       = 'Paul Battley'
-  s.email        = 'pbattley@gmail.com'
-  s.summary      = 'Libraries and command-line utility for downloading BBC iPlayer videos.'
-  s.files        = FileList['{lib,test}/**/*.rb']
-  s.require_path = 'lib'
-  s.test_file    = 'test/test_all.rb'
-  s.executables << 'iplayer-dl'
-  s.has_rdoc     = false
-  s.homepage     = 'http://po-ru.com/'
-end
-
-Rake::GemPackageTask.new(spec) do |pkg|
-  pkg.need_tar_gz = true
-end
-
 Rake::TestTask.new do |t|
-  t.libs << 'test'
-  t.test_files = FileList['test/test_*.rb']
-  t.verbose = true
+	t.libs << "test" 
+	t.test_files = FileList['test/test_*.rb']
+end
+
+Rake::PackageTask.new(PKG_NAME, PKG_VERSION) do |p|
+	p.need_tar_gz = true
+	p.package_files = PKG_FILES
 end
