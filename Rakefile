@@ -7,7 +7,7 @@ require 'find'
 # Globals
 
 PKG_NAME = 'iplayer-dl'
-PKG_VERSION = '0.1.0'
+PKG_VERSION = '0.1.1'
 
 PKG_FILES = ['README', 'setup.rb', 'Rakefile']
 Find.find('lib/', 'test/', 'bin/') do |f|
