@@ -1,0 +1,14 @@
+I've refactored iplayer-dl in order to make it easier to extend and wrap. As a
+direct result, it's no longer just one script. As a result, you'll need to
+install the libraries and command-line script in order to use it.
+
+The good news is that this is as easy as typing:
+
+  ruby setup.rb config
+  sudo ruby setup.rb install
+
+Windows users should omit 'sudo' in the second line.
+
+You can then run the downloader just by typing:
+
+  iplayer-dl
