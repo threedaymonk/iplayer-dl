@@ -1,3 +1,4 @@
+require 'net/http'
 require 'uri'
 
 class Net::HTTPResponse # Monkey-patch in some 21st-century functionality
