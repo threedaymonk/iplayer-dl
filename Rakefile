@@ -23,6 +23,7 @@ spec = Gem::Specification.new do |s|
   s.files        = FileList['{lib,test}/**/*.rb']
   s.require_path = 'lib'
   s.test_file    = 'test/test_all.rb'
+  s.executables << 'iplayer-dl'
   s.has_rdoc     = false
   s.homepage     = 'http://po-ru.com/'
 end
