@@ -7,29 +7,61 @@
 # svn co http://paulbattley.googlecode.com/svn/iplayer-dl
 
 require 'iplayer'
+require 'optparse'
 
 include IPlayer
 include IPlayer::Errors
 
-# Most people will prefer the non-sign-language version
-TYPE_PREFERENCE = %w[Original Signed]
+OPTIONS = {
+  :type_preference  => %w[original signed],
+  :download_path    => Dir.pwd,
+  :http_proxy       => ENV['http_proxy']
+}
 
-pid = ARGV[0]
+opts = ARGV.options{ |o|
+  o.banner << ' IDENTIFIER'
+  o.define_head 'Download DRM-free videos from the BBC iPlayer, courtesy of their iPhone interface.'
+  o.separator 'IDENTIFIER is the iPlayer viewing page URL or the PID of the programme.'
+  o.separator ''
+  o.on(
+    '-t', '--type-preference=VERSION', String,
+    'Video types in order of preference.',
+    "Default is '#{OPTIONS[:type_preference].join(',')}'."
+  ) { |s| OPTIONS[:type_preference] = s.split(/,\s*/) }
+  o.on(
+    '-d', '--download-path=PATH', String,
+    'Location into which downloaded files will be saved.',
+    'Default is current working directory.'
+  ) { |OPTIONS[:download_path]| }
+  o.on(
+    '-p', '--http-proxy=HOST:PORT', String,
+    'Specify an HTTP proxy.',
+    'Default is taken from the http_proxy environment variable.'
+  ) { |OPTIONS[:http_proxy]| }
+  o.on_tail(
+    '-h', '--help', 
+    'Show this help message.'
+  ) { puts o; exit }
+}
+
+begin
+  opts.parse!
+  pid = ARGV[0]
+  raise 'no programme identifier specified' unless pid
+rescue => exception
+  $stderr.puts 'Error: '+exception, ''
+  puts opts
+  exit 1
+end
+
 if pid =~ %r!/item/([a-z0-9]{8})!
   pid = $1
 end
 
-unless pid
-  puts "Download DRM-free videos from the BBC iPlayer, courtesy of their iPhone interface."
-  puts
-  puts "Usage: #{$0} identifier"
-  puts "Where identifier is the iPlayer viewing page or the PID of the programme."
-  exit 1
-end
-
-if http_proxy = ENV['http_proxy']
-  proxy_url = URI.parse(http_proxy)
-  http = Net::HTTP::Proxy(proxy_url.host, proxy_url.port)
+if http_proxy = OPTIONS[:http_proxy]
+  http_proxy = 'http://' + http_proxy unless http_proxy =~ %r{^http://}
+  u = URI.parse(http_proxy)
+  http = Net::HTTP::Proxy(u.host, u.port)
 else
   http = Net::HTTP
 end
@@ -40,20 +72,21 @@ begin
   available_versions = downloader.available_versions
   raise MP4Unavailable if available_versions.empty?
   version = available_versions.sort_by{ |v| 
-    TYPE_PREFERENCE.index(v.name) || 100 
+    OPTIONS[:type_preference].index(v.name) || 100 
   }.first
   title = Metadata.new(pid, browser).full_title
   filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+  path = File.expand_path( File.join( OPTIONS[:download_path], filename ))
 
   old_percentage = nil
-  if File.exist?(filename)
-    offset = File.size(filename)
+  if File.exist?(path)
+    offset = File.size(path)
     $stderr.puts "Resuming download at #{offset} bytes."
   else
     offset = 0
   end
 
-  File.open(filename, 'a+b') do |io|
+  File.open(path, 'a+b') do |io|
     downloader.download(version.pid, io, offset) do |position, max|
       percentage = "%.1f" % [((1000 * position) / max) / 10.0]
       if percentage != old_percentage

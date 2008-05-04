@@ -54,7 +54,11 @@ class Downloader
     response = get(location, Browser::QT_UA, 'Range'=>'bytes=0-1')
 
     # We now know the full length of the content
-    max = response.to_hash['content-range'][/\d+$/].to_i
+    content_range = response.to_hash['content-range']
+    unless content_range
+      raise FileUnavailable
+    end
+    max = content_range[/\d+$/].to_i
     bytes_got = offset
 
     get(location, Browser::QT_UA, 'Range'=>"bytes=#{offset}-") do |response|
