@@ -7,9 +7,9 @@ require 'find'
 # Globals
 
 PKG_NAME = 'iplayer-dl'
-PKG_VERSION = '0.1.2'
+PKG_VERSION = '0.1.3'
 
-PKG_FILES = ['README', 'setup.rb', 'Rakefile']
+PKG_FILES = %w[ COPYING README setup.rb Rakefile ]
 Find.find('lib/', 'test/', 'bin/') do |f|
 	if FileTest.directory?(f) and f =~ /\.svn/
 		Find.prune

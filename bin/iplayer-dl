@@ -34,6 +34,11 @@ opts = ARGV.options{ |o|
     'Default is current working directory.'
   ) { |OPTIONS[:download_path]| }
   o.on(
+    '-f', '--filename=FILENAME', String,
+    'Manually specify a name for the downloaded file.',
+    'The default is constructed from the programme metadata.'
+  ) { |OPTIONS[:filename]| }
+  o.on(
     '-p', '--http-proxy=HOST:PORT', String,
     'Specify an HTTP proxy.',
     'Default is taken from the http_proxy environment variable.'
@@ -75,8 +80,10 @@ begin
   version = available_versions.sort_by{ |v| 
     OPTIONS[:type_preference].index(v.name) || 100 
   }.first
-  title = Metadata.new(pid, browser).full_title
-  filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+  unless filename = OPTIONS[:filename]
+    title = Metadata.new(pid, browser).full_title
+    filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+  end
   path = File.expand_path( File.join( OPTIONS[:download_path], filename ))
 
   old_percentage = nil
@@ -114,6 +121,12 @@ rescue FileUnavailable
 rescue MP4Unavailable
   $stderr.puts(
     "This programme is not currently available in an MP4 version."
+  )
+  exit 1
+rescue MetadataError
+  $stderr.puts(
+    "Unable to parse the metadata for this programme.",
+    "As a workaround, you can use the -f option to specify a filename manually."
   )
   exit 1
 end
