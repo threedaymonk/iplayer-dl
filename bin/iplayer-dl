@@ -106,27 +106,7 @@ begin
   end
   $stderr.puts
 
-rescue ParsingError    
-  $stderr.puts(
-    "Unable to parse the programme page. Possible reasons:",
-    "1. The iPlayer has changed", 
-    "2. You are outside the UK (and not using a UK proxy)."
-  )
-  exit 1
-rescue FileUnavailable
-  $stderr.puts(
-    "An MP4 URL was found, but the download failed."
-  )
-  exit 1
-rescue MP4Unavailable
-  $stderr.puts(
-    "This programme is not currently available in an MP4 version."
-  )
-  exit 1
-rescue MetadataError
-  $stderr.puts(
-    "Unable to parse the metadata for this programme.",
-    "As a workaround, you can use the -f option to specify a filename manually."
-  )
+rescue RecognizedError => error
+  $stderr.puts(error.to_s)
   exit 1
 end
