@@ -19,7 +19,7 @@ class App < Wx::App
       http = Net::HTTP
     end
     @browser = Browser.new(http)
-    @downloading = false
+    @flags = {}
   end
 
   def on_init
@@ -42,9 +42,8 @@ class App < Wx::App
     self.yield
 
     File.open(path, 'a+b') do |io|
-      @downloading = true
       downloader.download(version.pid, io, offset) do |position, max|
-        return unless @downloading
+        return if check_flag(:stop_download)
         yield position, max
         self.yield
       end
@@ -52,7 +51,7 @@ class App < Wx::App
   end
 
   def stop_download!
-    @downloading = false
+    set_flag(:stop_download)
   end
 
   def get_default_filename(pid)
@@ -63,6 +62,17 @@ class App < Wx::App
       title = pid
     end
     "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+  end
+
+private
+  def set_flag(name)
+    @flags[name] = true
+  end
+
+  def check_flag(name)
+    retval = !!@flags[name]
+    @flags.delete(name)
+    retval
   end
 end
 end
