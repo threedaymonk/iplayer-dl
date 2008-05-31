@@ -33,7 +33,7 @@ module Errors
 
   class ProgrammeDoesNotExist < RecognizedError
     def to_s
-      "There is no page for this program.\n"+
+      "There is no page for this programme.\n"+
       "This probably means that the programme does not exist."
     end
   end
