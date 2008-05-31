@@ -60,6 +60,7 @@ class Downloader
     end
     max = content_range[/\d+$/].to_i
     bytes_got = offset
+    yield(bytes_got, max) if block_given?
 
     get(location, Browser::QT_UA, 'Range'=>"bytes=#{offset}-") do |response|
       response.read_body do |data|
