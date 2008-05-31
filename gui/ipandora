@@ -20,29 +20,22 @@ OPTIONS = {
 }
 
 class SelectFrame < Wx::Frame
-  def initialize
+  def initialize(app)
     super(nil, -1, "iPandora")
 
-    if http_proxy = OPTIONS[:http_proxy]
-      http_proxy = 'http://' + http_proxy unless http_proxy =~ %r{^http://}
-      u = URI.parse(http_proxy)
-      http = Net::HTTP::Proxy(u.host, u.port)
-    else
-      http = Net::HTTP
-    end
-    @browser = Browser.new(http)
+    @app = app
 
     @pid_label = Wx::StaticText.new(self, -1, "Programme ID")
     @pid_field = Wx::TextCtrl.new(self, -1, "", Wx::DEFAULT_POSITION, Wx::Size.new(200,24))
     @download_progress = Wx::Gauge.new(self, -1, 1)
-    @cancel_button = Wx::Button.new(self, -1, "Cancel")
+    @stop_button = Wx::Button.new(self, -1, "Stop")
+    evt_button(@stop_button.get_id){ |e| stop_button_clicked(e)   }
+    @stop_button.disable
     @download_button = Wx::Button.new(self, -1, "Download")
-    @status_bar = Wx::StatusBar.new(self, -1)
-    @status_bar.set_status_text("Waiting")
-    set_status_bar(@status_bar)
-
-    evt_button(@cancel_button.get_id){ |e| cancel_button_clicked(e)   }
     evt_button(@download_button.get_id){ |e| download_button_clicked(e) }
+    @status_bar = Wx::StatusBar.new(self, -1)
+    set_status_bar(@status_bar)
+    @status_bar.set_status_text("Waiting")
 
     do_layout
   end
@@ -55,7 +48,7 @@ class SelectFrame < Wx::Frame
     sizer_input.add(@pid_field, 0, Wx::ALL|Wx::EXPAND|Wx::ALIGN_CENTER_VERTICAL, 4)
     sizer_main.add(sizer_input, 0, Wx::EXPAND, 0)
     sizer_main.add(@download_progress, 0, Wx::ALL|Wx::EXPAND, 4)
-    sizer_buttons.add(@cancel_button, 0, Wx::ALL, 4)
+    sizer_buttons.add(@stop_button, 0, Wx::ALL, 4)
     sizer_buttons.add(@download_button, 0, Wx::ALL, 4)
     sizer_main.add(sizer_buttons, 0, Wx::ALIGN_RIGHT|Wx::ALIGN_CENTER_HORIZONTAL, 0)
     self.set_sizer(sizer_main)
@@ -64,56 +57,66 @@ class SelectFrame < Wx::Frame
     centre
   end
 
-  def cancel_button_clicked(event)
-    destroy
+  def stop_button_clicked(event)
+    @app.stop_download!
+    @status_bar.set_status_text("Stopped")
+    @download_button.enable
+    @stop_button.disable
   end
 
   def download_button_clicked(event)
+
     pid = @pid_field.get_value
     if pid.empty?
       message_box('You must specify a programme ID before I can download it.')
       return
     end
-
     if pid =~ %r!/item/([a-z0-9]{8})!
       pid = $1
     end
-    begin
-      title = Metadata.new(pid, @browser).full_title
-    rescue MetadataError
-      title = pid
-    end
-    filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+
+    @download_button.disable
+    filename = @app.get_default_filename(pid)
+
     fd = Wx::FileDialog.new(nil, 'Save as', '', filename, 'iPlayer Movies (*.mov)|*.mov', Wx::FD_SAVE)
-    case fd.show_modal
-    when Wx::ID_OK
+
+    if fd.show_modal == Wx::ID_OK
       path = fd.get_path
-
-      downloader = Downloader.new(@browser, pid)
-      available_versions = downloader.available_versions
-      raise MP4Unavailable if available_versions.empty?
-      version = available_versions.sort_by{ |v| 
-        OPTIONS[:type_preference].index(v.name) || 100 
-      }.first
-
-      if File.exist?(path)
-        offset = File.size(path)
-      else
-        offset = 0
-      end
       @status_bar.set_status_text("Downloading #{File.basename(path)}")
-      $app.yield
-
-      File.open(path, 'a+b') do |io|
-        downloader.download(version.pid, io, offset) do |position, max|
+      @download_button.disable
+      @stop_button.enable
+      begin
+        @app.download(pid, path) do |position, max|
           @download_progress.set_range(max)
           @download_progress.set_value(position)
-          $app.yield
+          if position == max
+            @status_bar.set_status_text("Completed #{File.basename(path)}")
+          end 
         end
+      rescue ParsingError    
+        message_box(
+          "Unable to parse the programme page. Possible reasons:\n"+
+          "1. The iPlayer has changed\n"+ 
+          "2. You are outside the UK (and not using a UK proxy).\n"+
+          "3. The BBC think that you are outside the UK."
+        )
+      rescue FileUnavailable
+        message_box(
+          "An MP4 URL was found, but the download failed."
+        )
+      rescue MP4Unavailable
+        message_box(
+          "This programme is not currently available in an MP4 version."
+        )
+      rescue MetadataError
+        message_box(
+          "Unable to parse the metadata for this programme.\n"+
+          "As a workaround, you can use the -f option to specify a filename manually."
+        )
       end
-      
-    else
+      @stop_button.disable
     end
+    @download_button.enable
   end
 
   def message_box(message, options={})
@@ -123,10 +126,61 @@ class SelectFrame < Wx::Frame
 end
 
 class App < Wx::App
+  def initialize
+    super
+    if http_proxy = OPTIONS[:http_proxy]
+      http_proxy = 'http://' + http_proxy unless http_proxy =~ %r{^http://}
+      u = URI.parse(http_proxy)
+      http = Net::HTTP::Proxy(u.host, u.port)
+    else
+      http = Net::HTTP
+    end
+    @browser = Browser.new(http)
+    @downloading = false
+  end
+
   def on_init
-    SelectFrame.new.show()
+    SelectFrame.new(self).show()
+  end
+
+  def download(pid, path)
+    downloader = Downloader.new(@browser, pid)
+    available_versions = downloader.available_versions rescue {}
+    raise MP4Unavailable if available_versions.empty?
+    version = available_versions.sort_by{ |v| 
+      OPTIONS[:type_preference].index(v.name) || 100 
+    }.first
+
+    if File.exist?(path)
+      offset = File.size(path)
+    else
+      offset = 0
+    end
+    self.yield
+
+    File.open(path, 'a+b') do |io|
+      @downloading = true
+      downloader.download(version.pid, io, offset) do |position, max|
+        return unless @downloading
+        yield position, max
+        self.yield
+      end
+    end
+  end
+
+  def stop_download!
+    @downloading = false
+  end
+
+  def get_default_filename(pid)
+    self.yield
+    begin
+      title = Metadata.new(pid, @browser).full_title
+    rescue MetadataError
+      title = pid
+    end
+    "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
   end
 end
 
-$app = App.new
-$app.main_loop
+App.new.main_loop
