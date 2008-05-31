@@ -1,7 +1,9 @@
 require 'rexml/document'
+require 'iplayer/errors'
 
 module IPlayer
 class Metadata
+  include IPlayer::Errors
 
   METADATA_URL = 'http://www.bbc.co.uk/iplayer/metafiles/episode/%s.xml'
 
