@@ -23,9 +23,11 @@ class Downloader
   
   def versions
     html = programme_page.body
-    JavaScript.parse(html[/ iplayer\.versions \s* = \s* ( \[ .*? \] ); /mx, 1])
-  rescue
-    raise ParsingError
+    begin
+      JavaScript.parse(html[/ iplayer\.versions \s* = \s* ( \[ .*? \] ); /mx, 1])
+    rescue 
+      raise ParsingError
+    end
   end
 
   def available_versions
@@ -76,6 +78,7 @@ private
   def programme_page
     page_url = PROGRAMME_URL % pid
     response = get(page_url, Browser::IPHONE_UA)
+    raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
     self.cookies = response.cookies.join('; ')
     response
   end
