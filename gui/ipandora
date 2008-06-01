@@ -7,7 +7,6 @@
 # Get the latest version via subversion:
 # svn co http://paulbattley.googlecode.com/svn/iplayer-dl
 
-$:.unshift(File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib')))
 require 'iplayer'
 require 'iplayer/gui/app'
 require 'iplayer/gui/main_frame'
