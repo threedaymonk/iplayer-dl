@@ -17,3 +17,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+If you have received this program as a self-executing bundle, the following
+licences apply to individual components:
+
+ruby: GNU General Public License (GPL), version 2; Ruby License
+rubyscript2exe: GNU General Public License (GPL), version 2
+wxruby: wxWindows Licence
