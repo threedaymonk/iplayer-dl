@@ -15,7 +15,7 @@ class MainFrame < Wx::Frame
     @pid_label = StaticText.new(self, -1, "Programme ID")
     @pid_field = TextCtrl.new(self, -1, "", DEFAULT_POSITION, Size.new(200,-1))
     @pid_field.set_tool_tip("Use either the short alphanumeric programme identifier or the URL of the viewing page on the iPlayer website.")
-    @download_progress = Gauge.new(self, -1, 1)
+    @download_progress = Gauge.new(self, -1, 1, DEFAULT_POSITION, DEFAULT_SIZE, GA_HORIZONTAL|GA_SMOOTH)
     @stop_button = Button.new(self, -1, "Stop")
     evt_button(@stop_button.get_id){ |e| stop_button_clicked(e)   }
     @stop_button.disable
