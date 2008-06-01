@@ -8,7 +8,7 @@ class MainFrame < Wx::Frame
   include IPlayer::Errors
 
   def initialize(app)
-    super(nil, -1, "iPandora", DEFAULT_POSITION, DEFAULT_SIZE, MINIMIZE_BOX|CLOSE_BOX|SYSTEM_MENU)
+    super(nil, -1, "iPandora", DEFAULT_POSITION, DEFAULT_SIZE, CAPTION|MINIMIZE_BOX|CLOSE_BOX|SYSTEM_MENU)
 
     @app = app
 
