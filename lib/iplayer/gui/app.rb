@@ -7,8 +7,9 @@ class App < Wx::App
   include IPlayer
   include IPlayer::Errors
 
-  def initialize(initial_frame_class, options)
+  def initialize(initial_frame_class, about, options)
     @initial_frame_class = initial_frame_class
+    @about = about
     @options = options
     super()
     if http_proxy = @options[:http_proxy]
@@ -62,6 +63,14 @@ class App < Wx::App
       title = pid
     end
     "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+  end
+
+  def name
+    @about[:name]
+  end
+
+  def show_about_box
+    Wx::about_box(@about)
   end
 
 private

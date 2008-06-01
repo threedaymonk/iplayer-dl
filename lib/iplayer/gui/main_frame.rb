@@ -8,9 +8,9 @@ class MainFrame < Wx::Frame
   include IPlayer::Errors
 
   def initialize(app)
-    super(nil, -1, "iPandora", DEFAULT_POSITION, DEFAULT_SIZE, CAPTION|MINIMIZE_BOX|CLOSE_BOX|SYSTEM_MENU)
-
     @app = app
+
+    super(nil, -1, @app.name, DEFAULT_POSITION, DEFAULT_SIZE, CAPTION|MINIMIZE_BOX|CLOSE_BOX|SYSTEM_MENU)
 
     @pid_label = StaticText.new(self, -1, "Programme ID")
     @pid_field = TextCtrl.new(self, -1, "", DEFAULT_POSITION, Size.new(300,-1))
@@ -19,8 +19,10 @@ class MainFrame < Wx::Frame
     @stop_button = Button.new(self, -1, "Stop")
     evt_button(@stop_button.get_id){ |e| stop_button_clicked(e)   }
     @stop_button.disable
-    @download_button = Button.new(self, -1, "Download")
+    @download_button = Button.new(self, -1, "Download...")
     evt_button(@download_button.get_id){ |e| download_button_clicked(e) }
+    @about_button = Button.new(self, -1, "About...")
+    evt_button(@about_button.get_id){ |e| about_button_clicked(e) }
     @status_bar = StatusBar.new(self, -1, 0)
     @status_bar.set_fields_count(3)
     @status_bar.set_status_widths([-1, 60, 60])
@@ -44,6 +46,7 @@ class MainFrame < Wx::Frame
     sizer_input.add(@pid_field, 0, ALL|EXPAND|ALIGN_CENTER_VERTICAL, 4)
     sizer_main.add(sizer_input, 0, EXPAND, 0)
     sizer_main.add(@download_progress, 0, ALL|EXPAND, 4)
+    sizer_buttons.add(@about_button, 0, ALL, 4)
     sizer_buttons.add(@stop_button, 0, ALL, 4)
     sizer_buttons.add(@download_button, 0, ALL, 4)
     sizer_main.add(sizer_buttons, 0, ALIGN_RIGHT|ALIGN_CENTER_HORIZONTAL, 0)
@@ -96,8 +99,12 @@ class MainFrame < Wx::Frame
     @download_button.enable
   end
 
+  def about_button_clicked(event)
+    @app.show_about_box
+  end
+
   def message_box(message, options={})
-    options = {:title => 'iPandora', :buttons => OK}.merge(options)
+    options = {:title => @app.name, :buttons => OK}.merge(options)
     MessageDialog.new(self, message, options[:title], options[:buttons]).show_modal
   end
 end

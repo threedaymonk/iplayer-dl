@@ -11,9 +11,15 @@ require 'iplayer'
 require 'iplayer/gui/app'
 require 'iplayer/gui/main_frame'
 
-OPTIONS = {
+options = {
   :type_preference  => %w[original signed],
   :http_proxy       => ENV['http_proxy']
 }
-
-IPlayer::GUI::App.new(IPlayer::GUI::MainFrame, OPTIONS).main_loop
+about = {
+  :name        => 'iPlayer Downloader',
+  :version     => '1.0',
+  :developers  => ['Paul Battley'],
+  :description => "Download programmes from the BBC iPlayer.\nVisit http://po-ru.com/ for more information."
+}
+app = IPlayer::GUI::App.new(IPlayer::GUI::MainFrame, about, options)
+app.main_loop
