@@ -14,7 +14,7 @@ class Metadata
 
   def metadata
     @metadata ||= REXML::Document.new( @browser.get(METADATA_URL % @pid).body )
-  rescue REXML::ParseException => e
+  rescue Exception => e
     raise MetadataError, e.message
   end
 

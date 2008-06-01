@@ -93,6 +93,8 @@ class MainFrame < Wx::Frame
         end
       rescue RecognizedError => error
         message_box(error.to_s, :title => 'Error')
+      rescue Exception => error
+        message_box("#{error.message} (#{error.class})\n#{error.backtrace.first}", :title => 'Error')
       end
       @stop_button.disable
     end
