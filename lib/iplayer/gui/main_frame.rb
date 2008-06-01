@@ -13,7 +13,7 @@ class MainFrame < Wx::Frame
     @app = app
 
     @pid_label = StaticText.new(self, -1, "Programme ID")
-    @pid_field = TextCtrl.new(self, -1, "", DEFAULT_POSITION, Size.new(200,-1))
+    @pid_field = TextCtrl.new(self, -1, "", DEFAULT_POSITION, Size.new(300,-1))
     @pid_field.set_tool_tip("Use either the short alphanumeric programme identifier or the URL of the viewing page on the iPlayer website.")
     @download_progress = Gauge.new(self, -1, 1, DEFAULT_POSITION, DEFAULT_SIZE, GA_HORIZONTAL|GA_SMOOTH)
     @stop_button = Button.new(self, -1, "Stop")
@@ -22,8 +22,10 @@ class MainFrame < Wx::Frame
     @download_button = Button.new(self, -1, "Download")
     evt_button(@download_button.get_id){ |e| download_button_clicked(e) }
     @status_bar = StatusBar.new(self, -1, 0)
+    @status_bar.set_fields_count(3)
+    @status_bar.set_status_widths([-1, 60, 60])
     set_status_bar(@status_bar)
-    @status_bar.set_status_text("Waiting")
+    @status_bar.set_status_text("Waiting", 0)
 
     do_layout
   end
@@ -47,7 +49,7 @@ class MainFrame < Wx::Frame
 
   def stop_button_clicked(event)
     @app.stop_download!
-    @status_bar.set_status_text("Stopped")
+    @status_bar.set_status_text("Stopped", 0)
     @download_button.enable
     @stop_button.disable
   end
@@ -69,16 +71,16 @@ class MainFrame < Wx::Frame
 
     if fd.show_modal == ID_OK
       path = fd.get_path
-      @status_bar.set_status_text("Downloading #{File.basename(path)}")
+      @status_bar.set_status_text(File.basename(path), 0)
       @download_button.disable
       @stop_button.enable
       begin
         @app.download(pid, path) do |position, max|
           @download_progress.set_range(max)
           @download_progress.set_value(position)
-          if position == max
-            @status_bar.set_status_text("Completed #{File.basename(path)}")
-          end 
+          percentage = "%.1f" % [((1000.0 * position) / max).round / 10.0]
+          @status_bar.set_status_text("#{(max.to_f / 2**20).round} MiB", 1) 
+          @status_bar.set_status_text(percentage+"%", 2) 
         end
       rescue RecognizedError => error
         message_box(error.to_s, :title => 'Error')
