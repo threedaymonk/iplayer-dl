@@ -8,19 +8,20 @@ class MainFrame < Wx::Frame
   include IPlayer::Errors
 
   def initialize(app)
-    super(nil, -1, "iPandora")
+    super(nil, -1, "iPandora", DEFAULT_POSITION, DEFAULT_SIZE, MINIMIZE_BOX|CLOSE_BOX|SYSTEM_MENU)
 
     @app = app
 
     @pid_label = StaticText.new(self, -1, "Programme ID")
     @pid_field = TextCtrl.new(self, -1, "", DEFAULT_POSITION, Size.new(200,24))
+    @pid_field.set_tool_tip("Use either the short alphanumeric programme identifier or the URL of the viewing page on the iPlayer website.")
     @download_progress = Gauge.new(self, -1, 1)
     @stop_button = Button.new(self, -1, "Stop")
     evt_button(@stop_button.get_id){ |e| stop_button_clicked(e)   }
     @stop_button.disable
     @download_button = Button.new(self, -1, "Download")
     evt_button(@download_button.get_id){ |e| download_button_clicked(e) }
-    @status_bar = StatusBar.new(self, -1)
+    @status_bar = StatusBar.new(self, -1, 0)
     set_status_bar(@status_bar)
     @status_bar.set_status_text("Waiting")
 
