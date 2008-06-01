@@ -27,7 +27,12 @@ class MainFrame < Wx::Frame
     set_status_bar(@status_bar)
     @status_bar.set_status_text("Waiting", 0)
 
+    set_properties
     do_layout
+  end
+
+  def set_properties
+    set_background_colour(SystemSettings.get_colour(SYS_COLOUR_3DFACE))
   end
 
   def do_layout
