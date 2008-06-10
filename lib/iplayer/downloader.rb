@@ -71,7 +71,6 @@ class Downloader
 
     get(location, Browser::QT_UA, 'Range'=>"bytes=#{offset}-") do |response|
       response.read_body do |data|
-        bytes_got += data.length
         buffer = ''
         data.each_byte do |d|
           if (bytes_got >= XOR_START) && (bytes_got < xor_end-2)
