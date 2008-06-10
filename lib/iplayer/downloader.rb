@@ -4,6 +4,9 @@ class Downloader
 
   PROGRAMME_URL = 'http://www.bbc.co.uk/iplayer/page/item/%s.shtml'
   SELECTOR_URL  = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
+  XOR_KEYS       = [0x3c, 0x53]
+  XOR_START      = 0x2800
+  XOR_END_OFFSET = 0x400
 
   Version = Struct.new(:name, :pid)
 
@@ -64,11 +67,23 @@ class Downloader
     bytes_got = offset
     yield(bytes_got, max) if block_given?
 
+    xor_end = max - XOR_END_OFFSET
+
     get(location, Browser::QT_UA, 'Range'=>"bytes=#{offset}-") do |response|
       response.read_body do |data|
         bytes_got += data.length
+        buffer = ''
+        data.each_byte do |d|
+          if (bytes_got >= XOR_START) && (bytes_got < xor_end-2)
+            d ^= XOR_KEYS[(bytes_got-XOR_START) & 1]
+          elsif (bytes_got >= xor_end-2) && (bytes_got < xor_end)
+            d ^= XOR_KEYS[(xor_end-bytes_got+1) & 1]
+          end
+          bytes_got += 1
+          buffer << d.chr
+        end
         yield(bytes_got, max) if block_given?
-        io << data
+        io << buffer
       end
     end
   end
