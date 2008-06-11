@@ -19,7 +19,7 @@ OPTIONS = {
 }
 
 opts = ARGV.options{ |o|
-  o.banner << ' IDENTIFIER'
+  o.banner << ' IDENTIFIER [IDENTIFIER [...]]'
   o.define_head 'Download DRM-free videos from the BBC iPlayer, courtesy of their iPhone interface.'
   o.separator 'IDENTIFIER is the iPlayer viewing page URL or the PID of the programme.'
   o.separator ''
@@ -36,7 +36,8 @@ opts = ARGV.options{ |o|
   o.on(
     '-f', '--filename=FILENAME', String,
     'Manually specify a name for the downloaded file.',
-    'The default is constructed from the programme metadata.'
+    'The default is constructed from the programme metadata.',
+    'Do not use this with multiple downloads!'
   ) { |OPTIONS[:filename]| }
   o.on(
     '-p', '--http-proxy=HOST:PORT', String,
@@ -51,16 +52,12 @@ opts = ARGV.options{ |o|
 
 begin
   opts.parse!
-  pid = ARGV[0]
-  raise 'no programme identifier specified' unless pid
+  raise 'no programme identifier specified' if ARGV.empty?
+  raise 'specifying the file name does not work with multiple downloads' if OPTIONS[:filename] && ARGV.length > 1
 rescue => exception
   $stderr.puts 'Error: '+exception, ''
   puts opts
   exit 1
-end
-
-if pid =~ %r!/item/([a-z0-9]{8})!
-  pid = $1
 end
 
 if http_proxy = OPTIONS[:http_proxy]
@@ -71,42 +68,49 @@ if http_proxy = OPTIONS[:http_proxy]
 else
   http = Net::HTTP
 end
-browser = Browser.new(http)
-downloader = Downloader.new(browser, pid)
 
-begin
-  available_versions = downloader.available_versions
-  raise MP4Unavailable if available_versions.empty?
-  version = available_versions.sort_by{ |v| 
-    OPTIONS[:type_preference].index(v.name) || 100 
-  }.first
-  unless filename = OPTIONS[:filename]
-    title = Metadata.new(pid, browser).full_title
-    filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
-  end
-  path = File.expand_path( File.join( OPTIONS[:download_path], filename ))
-
-  old_percentage = nil
-  if File.exist?(path)
-    offset = File.size(path)
-    $stderr.puts "Resuming download at #{offset} bytes."
-  else
-    offset = 0
+ARGV.each do |pid|
+  if pid =~ %r!/item/([a-z0-9]{8})!
+    pid = $1
   end
 
-  File.open(path, 'a+b') do |io|
-    downloader.download(version.pid, io, offset) do |position, max|
-      percentage = "%.1f" % [((1000 * position) / max) / 10.0]
-      if percentage != old_percentage
-        old_percentage = percentage
-        $stderr.print "\r#{ percentage }% #{ filename } (#{ version.name })"
-        $stderr.flush
+  browser = Browser.new(http)
+  downloader = Downloader.new(browser, pid)
+
+  begin
+    available_versions = downloader.available_versions
+    raise MP4Unavailable if available_versions.empty?
+    version = available_versions.sort_by{ |v| 
+      OPTIONS[:type_preference].index(v.name) || 100 
+    }.first
+    unless filename = OPTIONS[:filename]
+      title = Metadata.new(pid, browser).full_title
+      filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+    end
+    path = File.expand_path( File.join( OPTIONS[:download_path], filename ))
+
+    old_percentage = nil
+    if File.exist?(path)
+      offset = File.size(path)
+      $stderr.puts "Resuming download at #{offset} bytes."
+    else
+      offset = 0
+    end
+
+    File.open(path, 'a+b') do |io|
+      downloader.download(version.pid, io, offset) do |position, max|
+        percentage = "%.1f" % [((1000 * position) / max) / 10.0]
+        if percentage != old_percentage
+          old_percentage = percentage
+          $stderr.print "\r#{ percentage }% #{ filename } (#{ version.name })"
+          $stderr.flush
+        end
       end
     end
-  end
-  $stderr.puts
+    $stderr.puts
 
-rescue RecognizedError => error
-  $stderr.puts(error.to_s)
-  exit 1
+  rescue RecognizedError => error
+    $stderr.puts(error.to_s)
+    next
+  end
 end
