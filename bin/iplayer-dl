@@ -8,6 +8,7 @@
 
 require 'iplayer'
 require 'optparse'
+require 'fileutils'
 
 include IPlayer
 include IPlayer::Errors
@@ -33,6 +34,10 @@ opts = ARGV.options{ |o|
     'Location into which downloaded files will be saved.',
     'Default is current working directory.'
   ) { |OPTIONS[:download_path]| }
+  o.on(
+    '-s', '--title-subdir',
+    'Place downloaded files in a sub-directory named after the title of the programme.'
+  ) { OPTIONS[:subdirs] = true }
   o.on(
     '-f', '--filename=FILENAME', String,
     'Manually specify a name for the downloaded file.',
@@ -83,11 +88,20 @@ ARGV.each do |pid|
     version = available_versions.sort_by{ |v| 
       OPTIONS[:type_preference].index(v.name) || 100 
     }.first
-    unless filename = OPTIONS[:filename]
-      title = Metadata.new(pid, browser).full_title
-      filename = "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+
+    filename = OPTIONS[:filename]
+    if filename.nil? || OPTIONS[:subdirs]
+      metadata = Metadata.new(pid, browser)
+      filename ||= "#{ metadata.full_title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
     end
-    path = File.expand_path( File.join( OPTIONS[:download_path], filename ))
+    if OPTIONS[:subdirs]
+      subdir = metadata.title.gsub(/[^a-z0-9 \-\.]+/i, '')
+      path = File.expand_path( File.join( OPTIONS[:download_path], subdir ))
+      FileUtils.makedirs(path)
+      path = File.join( path, filename )
+    else
+      path = File.expand_path( File.join( OPTIONS[:download_path], filename ))
+    end
 
     old_percentage = nil
     if File.exist?(path)
