@@ -71,18 +71,27 @@ class Downloader
 
     get(location, Browser::QT_UA, 'Range'=>"bytes=#{offset}-") do |response|
       response.read_body do |data|
-        buffer = ''
-        data.each_byte do |d|
-          if (bytes_got >= XOR_START) && (bytes_got < xor_end-2)
-            d ^= XOR_KEYS[(bytes_got-XOR_START) & 1]
-          elsif (bytes_got >= xor_end-2) && (bytes_got < xor_end)
-            d ^= XOR_KEYS[(xor_end-bytes_got+1) & 1]
+        bytes = data.unpack('C*')
+        if bytes_got >= XOR_START && (bytes_got + data.length) < xor_end
+          bytes.each_with_index do |d, i|
+            offset = bytes_got + i
+            bytes[i] = d ^ XOR_KEYS[(offset-XOR_START) & 1]
           end
-          bytes_got += 1
-          buffer << d.chr
+        else
+          bytes.each_with_index do |d, i|
+            offset = bytes_got + i
+            if (offset >= XOR_START) && (offset < xor_end-2)
+              d ^= XOR_KEYS[(offset-XOR_START) & 1]
+            elsif (offset >= xor_end-2) && (offset < xor_end)
+              d ^= XOR_KEYS[(xor_end-offset+1) & 1]
+            end
+            bytes[i] = d
+          end
         end
+        data = bytes.pack('C*')
+        bytes_got += data.length
+        io << data
         yield(bytes_got, max) if block_given?
-        io << buffer
       end
     end
   end
