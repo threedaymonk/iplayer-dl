@@ -11,7 +11,7 @@ class Downloader
   Version = Struct.new(:name, :pid)
 
   attr_reader   :browser, :pid
-  attr_accessor :cookies
+  attr_accessor :cookies, :skip_decryption
 
   def initialize(browser, pid)
     @browser = browser
@@ -71,24 +71,26 @@ class Downloader
 
     get(location, Browser::QT_UA, 'Range'=>"bytes=#{offset}-") do |response|
       response.read_body do |data|
-        bytes = data.unpack('C*')
-        if bytes_got >= XOR_START && (bytes_got + data.length) < xor_end
-          bytes.each_with_index do |d, i|
-            offset = bytes_got + i
-            bytes[i] = d ^ XOR_KEYS[(offset-XOR_START) & 1]
-          end
-        else
-          bytes.each_with_index do |d, i|
-            offset = bytes_got + i
-            if (offset >= XOR_START) && (offset < xor_end-2)
-              d ^= XOR_KEYS[(offset-XOR_START) & 1]
-            elsif (offset >= xor_end-2) && (offset < xor_end)
-              d ^= XOR_KEYS[(xor_end-offset+1) & 1]
+        unless skip_decryption
+          bytes = data.unpack('C*')
+          if bytes_got >= XOR_START && (bytes_got + data.length) < xor_end
+            bytes.each_with_index do |d, i|
+              offset = bytes_got + i
+              bytes[i] = d ^ XOR_KEYS[(offset-XOR_START) & 1]
             end
-            bytes[i] = d
+          else
+            bytes.each_with_index do |d, i|
+              offset = bytes_got + i
+              if (offset >= XOR_START) && (offset < xor_end-2)
+                d ^= XOR_KEYS[(offset-XOR_START) & 1]
+              elsif (offset >= xor_end-2) && (offset < xor_end)
+                d ^= XOR_KEYS[(xor_end-offset+1) & 1]
+              end
+              bytes[i] = d
+            end
           end
+          data = bytes.pack('C*')
         end
-        data = bytes.pack('C*')
         bytes_got += data.length
         io << data
         yield(bytes_got, max) if block_given?
