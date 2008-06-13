@@ -12,14 +12,11 @@ def analyze(file)
       encrypted = false
 
       if name =~ /[^a-z0-9 ]/i
+        key = io.read(2)
+        io.seek(-2, IO::SEEK_CUR)
+        key = (key+key).unpack('N')[0]
+        name = [name.unpack('N')[0] ^ key].pack('N')
         encrypted = true
-        key = [
-          name[0] ^ ?m,
-          name[1] ^ ?o,
-          name[2] ^ ?o,
-          name[3] ^ ?v
-        ].pack('C*').unpack('N')[0]
-        length ^= key
       end
 
       data_length = length - 8
