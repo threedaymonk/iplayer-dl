@@ -1,22 +1,33 @@
 #!/usr/bin/env ruby
-SAMPLE_SIZE = 32*8
+SAMPLE_SIZE = 1024*8
 ROW_LENGTH = 16
 
 def analyze(file)
-  length, name, sample, key, encrypted, overflow = nil
+  length, name, sample, key, encrypted, swapped, overflow = nil
   file_length = File.size(file)
   File.open(file, 'rb') do |io|
     until io.eof?
       length = io.read(4).unpack('N')[0]
       name = io.read(4)
       encrypted = false
+      swapped = false
 
       if name =~ /[^a-z0-9 ]/i
         key = io.read(2)
         io.seek(-2, IO::SEEK_CUR)
-        key = (key+key).unpack('N')[0]
-        name = [name.unpack('N')[0] ^ key].pack('N')
+        k = (key+key).unpack('N')[0]
+        name = [name.unpack('N')[0] ^ k].pack('N')
+        length ^= k
         encrypted = true
+        if name == 'omvo'
+          name = 'moov'
+          swapped = true
+          length = 
+            ((length & 0xFF000000) >> 2) |
+            ((length & 0x00FF0000) << 2) |
+            ((length & 0x0000FF00) >> 2) |
+            ((length & 0x000000FF) << 2)
+        end
       end
 
       data_length = length - 8
@@ -26,22 +37,32 @@ def analyze(file)
       sample = io.read(sample_length)
 
       puts "\"#{name}\" #{length} (#{'%08x' % length}) bytes"
-      puts "Encrypted: #{'%08x' % key}" if encrypted
+      puts "Encrypted: #{'%04x' % key.unpack('n')[0]}" if encrypted
+      puts "Swapped" if swapped
       if sample.empty?
         puts '  (empty)'
       else
         0.step(sample.length-1, ROW_LENGTH) do |i|
           row = sample[i, ROW_LENGTH]
+          display_row = ''
           (0...ROW_LENGTH).each do |j|
             print '  ' if j % 8 == 0
-            c = row[j]
+            if swapped
+              c = row[j - (j%2) + ((j+1)%2)]
+            else
+              c = row[j]
+            end
+            if encrypted
+              c ^= key[j%2 ^ 1] 
+            end
             if c  
-              print "%02x " % row[j]
+              print "%02x " % c
+              display_row << c.chr
             else
               print "   "
             end
           end
-          puts row.gsub(/[^ -\x7f]/n, '.')
+          puts display_row.gsub(/[^ -\x7f]/n, '.')
         end
         puts '  ...' if data_length > SAMPLE_SIZE
       end
