@@ -1,0 +1,67 @@
+#!/usr/bin/env ruby
+SAMPLE_SIZE = 32*8
+ROW_LENGTH = 16
+
+def analyze(file)
+  length, name, sample, key, encrypted, overflow = nil
+  file_length = File.size(file)
+  File.open(file, 'rb') do |io|
+    until io.eof?
+      length = io.read(4).unpack('N')[0]
+      name = io.read(4)
+      encrypted = false
+
+      if name =~ /[^a-z0-9 ]/i
+        encrypted = true
+        key = [
+          name[0] ^ ?m,
+          name[1] ^ ?o,
+          name[2] ^ ?o,
+          name[3] ^ ?v
+        ].pack('C*').unpack('N')[0]
+        length ^= key
+      end
+
+      data_length = length - 8
+      next if data_length == 0
+      
+      sample_length = [SAMPLE_SIZE, data_length].min
+      sample = io.read(sample_length)
+
+      puts "\"#{name}\" #{length} (#{'%08x' % length}) bytes"
+      puts "Encrypted: #{'%08x' % key}" if encrypted
+      if sample.empty?
+        puts '  (empty)'
+      else
+        0.step(sample.length-1, ROW_LENGTH) do |i|
+          row = sample[i, ROW_LENGTH]
+          (0...ROW_LENGTH).each do |j|
+            print '  ' if j % 8 == 0
+            c = row[j]
+            if c  
+              print "%02x " % row[j]
+            else
+              print "   "
+            end
+          end
+          puts row.gsub(/[^ -\x7f]/n, '.')
+        end
+        puts '  ...' if data_length > SAMPLE_SIZE
+      end
+
+      overflow = (io.pos + data_length - sample_length) - file_length
+      if overflow == 0
+        puts "End of file"
+      elsif overflow > 1
+        puts "Seek past end of file by #{overflow} (#{'%08x' % overflow}) bytes"
+      end
+      io.seek(data_length - sample_length, IO::SEEK_CUR)
+    end
+  end
+end
+
+ARGV.each do |f|
+  puts f
+  analyze(f)
+  puts
+end

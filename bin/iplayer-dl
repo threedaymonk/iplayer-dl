@@ -49,6 +49,10 @@ opts = ARGV.options{ |o|
     'Specify an HTTP proxy.',
     'Default is taken from the http_proxy environment variable.'
   ) { |OPTIONS[:http_proxy]| }
+  o.on(
+    '-k', '--skip-decryption',
+    'Download without decrypting (useful when playing cat-and-mouse with the Beeb).'
+  ) { OPTIONS[:skip_decryption] = true }
   o.on_tail(
     '-h', '--help', 
     'Show this help message.'
@@ -81,6 +85,7 @@ ARGV.each do |pid|
 
   browser = Browser.new(http)
   downloader = Downloader.new(browser, pid)
+  downloader.skip_decryption = OPTIONS[:skip_decryption]
 
   begin
     available_versions = downloader.available_versions
