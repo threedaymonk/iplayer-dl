@@ -4,6 +4,10 @@ class Downloader
 
   PROGRAMME_URL = 'http://www.bbc.co.uk/iplayer/page/item/%s.shtml'
   SELECTOR_URL  = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
+  BUG_1_URL     = 'http://www.bbc.co.uk/iplayer/framework/o.gif?%d'
+  BUG_2_URL     = 'http://stats.bbc.co.uk/o.gif?~RS~s~RS~iplayer~RS~t~RS~Web_progi~RS~i~RS~'+
+                  '%s~RS~p~RS~0~RS~a~RS~0~RS~u~RS~/iplayer/page/item/%s.shtml~RS~r~RS~'+
+                  'http://www.bbc.co.uk/iplayer/~RS~q~RS~src=ip_mp~RS~z~RS~07~RS~'
   XOR_KEYS       = [0x3c, 0x53]
   XOR_START      = 0x2800
   XOR_END_OFFSET = 0x400
@@ -44,6 +48,14 @@ class Downloader
   end
 
   def download(version_pid, io, offset=0, &blk)
+    # Request the image bugs
+    r = (rand * 100000).floor
+    response = get(BUG_1_URL % [r], Browser::IPHONE_UA)
+    response.each do |k,v|
+      puts [k,v]*': '
+    end
+    get(BUG_2_URL % [pid, pid], Browser::IPHONE_UA)
+
     # Get the auth URL
     r = (rand * 10000000).floor
     selector = SELECTOR_URL % [version_pid, r]
