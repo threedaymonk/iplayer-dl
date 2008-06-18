@@ -2,15 +2,9 @@ module IPlayer
 class Downloader
   include IPlayer::Errors
 
-  PROGRAMME_URL = 'http://www.bbc.co.uk/iplayer/page/item/%s.shtml'
-  SELECTOR_URL  = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
-  BUG_1_URL     = 'http://www.bbc.co.uk/iplayer/framework/img/o.gif?%d'
-  BUG_2_URL     = 'http://stats.bbc.co.uk/o.gif?~RS~s~RS~iplayer~RS~t~RS~Web_progi~RS~i~RS~'+
-                  '%s~RS~p~RS~0~RS~a~RS~0~RS~u~RS~/iplayer/page/item/%s.shtml~RS~r~RS~'+
-                  'http://www.bbc.co.uk/iplayer/~RS~q~RS~src=ip_mp~RS~z~RS~07~RS~'
-  XOR_KEYS       = [0x3c, 0x53]
-  XOR_START      = 0x2800
-  XOR_END_OFFSET = 0x400
+  PROGRAMME_URL  = 'http://www.bbc.co.uk/iplayer/page/item/%s.shtml'
+  SELECTOR_URL   = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
+  BUG_URL        = 'http://www.bbc.co.uk/iplayer/framework/img/o.gif?%d'
 
   Version = Struct.new(:name, :pid)
 
@@ -40,7 +34,7 @@ class Downloader
   def available_versions
     versions.inject([]){ |av, version|
       if (version[:iplayer_streaming_http_mp4].any?{ |stream|
-            stream[:start] < DateTime.now && stream[:end] > DateTime.now })
+        stream[:start] < DateTime.now && stream[:end] > DateTime.now })
         av << Version.new(version[:type], version[:pid])
       end
       av
@@ -49,9 +43,9 @@ class Downloader
 
   def download(version_pid, io, offset=0, &blk)
     # Request the image bugs
-    r = (rand * 100000).floor
-    get(BUG_1_URL % [r], Browser::IPHONE_UA)
-    get(BUG_2_URL % [pid, pid], Browser::IPHONE_UA)
+    bugs.each do |url|
+      #get(url, Browser::IPHONE_UA)
+    end
 
     # Get the auth URL
     r = (rand * 10000000).floor
@@ -90,11 +84,21 @@ class Downloader
 private
 
   def programme_page
-    page_url = PROGRAMME_URL % pid
     response = get(page_url, Browser::IPHONE_UA)
     raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
     self.cookies = response.cookies.join('; ')
     response
+  end
+
+  def page_url
+    PROGRAMME_URL % pid
+  end
+
+  def bugs
+    host = URI.parse(page_url)
+    (programme_page.body.scan(%r{[^"']+?/o\.gif[^"']+}).map{ |src|
+      URI.join(src).to_s
+    } + [(BUG_URL % [(rand * 100000).floor])]).uniq
   end
 
 end
