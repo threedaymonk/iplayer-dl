@@ -23,9 +23,8 @@ class Downloader
   end
   
   def versions
-    html = programme_page.body
     begin
-      JavaScript.parse(html[/ iplayer\.versions \s* = \s* ( \[ .*? \] ); /mx, 1])
+      JavaScript.parse(programme_page_html[/ iplayer\.versions \s* = \s* ( \[ .*? \] ); /mx, 1])
     rescue 
       raise ParsingError
     end
@@ -44,7 +43,7 @@ class Downloader
   def download(version_pid, io, offset=0, &blk)
     # Request the image bugs
     bugs.each do |url|
-      #get(url, Browser::IPHONE_UA)
+      get(url, Browser::IPHONE_UA)
     end
 
     # Get the auth URL
@@ -70,8 +69,6 @@ class Downloader
     bytes_got = offset
     yield(bytes_got, content_length) if block_given?
 
-    xor_end = content_length - XOR_END_OFFSET
-
     get(location, Browser::QT_UA, 'Range'=>"bytes=#{offset}-#{content_length-1}") do |response|
       response.read_body do |data|
         bytes_got += data.length
@@ -90,13 +87,17 @@ private
     response
   end
 
+  def programme_page_html
+    @programme_page_html ||= programme_page.body
+  end
+
   def page_url
     PROGRAMME_URL % pid
   end
 
   def bugs
     host = URI.parse(page_url)
-    (programme_page.body.scan(%r{[^"']+?/o\.gif[^"']+}).map{ |src|
+    (programme_page_html.scan(%r{[^"']+?/o\.gif[^"']+}).map{ |src|
       URI.join(src).to_s
     } + [(BUG_URL % [(rand * 100000).floor])]).uniq
   end
