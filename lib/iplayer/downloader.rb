@@ -2,9 +2,30 @@ module IPlayer
 class Downloader
   include IPlayer::Errors
 
+  class Segment
+    attr_reader :start, :end
+    attr_accessor :tag
+    attr_accessor :data
+
+    def initialize(start_at, end_at, tag=nil)
+      @start = start_at
+      @end   = end_at
+      @tag   = tag
+    end
+
+    def finished?
+      @finished
+    end
+
+    def finish!
+      @finished = true
+    end
+  end
+
   PROGRAMME_URL  = 'http://www.bbc.co.uk/iplayer/page/item/%s.shtml'
   SELECTOR_URL   = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
   BUG_URL        = 'http://www.bbc.co.uk/iplayer/framework/img/o.gif?%d'
+  MAX_SEGMENT    = 8 * 1024 * 1024
 
   Version = Struct.new(:name, :pid)
 
@@ -66,15 +87,49 @@ class Downloader
       raise FileUnavailable
     end
     content_length = content_range[/\d+$/].to_i
-    bytes_got = offset
+    bytes_got = 0
+    io.seek(bytes_got)
     yield(bytes_got, content_length) if block_given?
 
-    get(location, Browser::QT_UA, 'Range'=>"bytes=#{offset}-#{content_length-1}") do |response|
-      response.read_body do |data|
-        bytes_got += data.length
-        io << data
-        yield(bytes_got, content_length) if block_given?
+    segments = [Segment.new(0, 511, :first)]
+    segment_data = nil
+    while segment = segments.find{ |s| !s.finished? }
+      segment_data = ''
+      get(location, Browser::QT_UA, 'Range'=>"bytes=#{segment.start}-#{segment.end}") do |response|
+        response.read_body do |data|
+          bytes_got += data.length
+          segment_data << data
+          yield(bytes_got, content_length) if block_given?
+        end
       end
+      segment.finish!
+      case segment.tag
+      when :first # Parse and skip ahead
+        atom_name = nil
+        offset = 0
+        until atom_name == 'mdat'
+          atom_name = segment_data[offset+4,4]
+          offset += segment_data[offset,4].unpack('N')[0]
+        end
+        moov_start = offset
+        moov_start.step(content_length - 1, MAX_SEGMENT) do |a|
+          b = [a + MAX_SEGMENT - 1, content_length - 1].min
+          segments << Segment.new(a, b, :tail)
+        end
+        512.step(moov_start - 1, MAX_SEGMENT) do |a|
+          b = [a + MAX_SEGMENT - 1, moov_start - 1].min
+          segments << Segment.new(a, b)
+        end
+        io << segment_data
+      when :tail # Cache in memory for later
+        segment.data = segment_data
+      else # Just write it out
+        io << segment_data
+      end
+    end
+    # Write out the cached segments at the end
+    segments.select{ |s| s.tag == :tail }.each do |s|
+      io << s.data
     end
   end
 
