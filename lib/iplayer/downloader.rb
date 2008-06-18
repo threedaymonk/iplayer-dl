@@ -50,10 +50,7 @@ class Downloader
   def download(version_pid, io, offset=0, &blk)
     # Request the image bugs
     r = (rand * 100000).floor
-    response = get(BUG_1_URL % [r], Browser::IPHONE_UA)
-    response.each do |k,v|
-      puts [k,v]*': '
-    end
+    get(BUG_1_URL % [r], Browser::IPHONE_UA)
     get(BUG_2_URL % [pid, pid], Browser::IPHONE_UA)
 
     # Get the auth URL
