@@ -1,11 +1,19 @@
+require 'tempfile'
+
 module IPlayer
 class Downloader
+
+  PROGRAMME_URL  = 'http://www.bbc.co.uk/iplayer/page/item/%s.shtml'
+  SELECTOR_URL   = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
+  BUG_URL        = 'http://www.bbc.co.uk/iplayer/framework/img/o.gif?%d'
+  MAX_SEGMENT    = 4 * 1024 * 1024
+  COPY_BUFFER    = 4 * 1024 * 1024
+
   include IPlayer::Errors
 
   class Segment
     attr_reader :start, :end
     attr_accessor :tag
-    attr_accessor :data
 
     def initialize(start_at, end_at, tag=nil)
       @start = start_at
@@ -21,11 +29,6 @@ class Downloader
       @finished = true
     end
   end
-
-  PROGRAMME_URL  = 'http://www.bbc.co.uk/iplayer/page/item/%s.shtml'
-  SELECTOR_URL   = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
-  BUG_URL        = 'http://www.bbc.co.uk/iplayer/framework/img/o.gif?%d'
-  MAX_SEGMENT    = 8 * 1024 * 1024
 
   Version = Struct.new(:name, :pid)
 
@@ -90,6 +93,8 @@ class Downloader
     bytes_got = 0
     io.seek(bytes_got)
     yield(bytes_got, content_length) if block_given?
+    tail_io = Tempfile.new('iplayer-dl')
+    tail_io.binmode # for windows
 
     segments = [Segment.new(0, 511, :first)]
     segment_data = nil
@@ -121,16 +126,19 @@ class Downloader
           segments << Segment.new(a, b)
         end
         io << segment_data
-      when :tail # Cache in memory for later
-        segment.data = segment_data
+      when :tail # Cache in temporary file for later
+        tail_io << segment_data
       else # Just write it out
         io << segment_data
       end
     end
     # Write out the cached segments at the end
-    segments.select{ |s| s.tag == :tail }.each do |s|
-      io << s.data
+    tail_io.open
+    tail_io.binmode # again, for windows
+    until tail_io.eof?
+      io << tail_io.read(COPY_BUFFER)
     end
+    tail_io.close
   end
 
 private
