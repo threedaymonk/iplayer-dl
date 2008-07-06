@@ -3,7 +3,8 @@ require 'tempfile'
 module IPlayer
 class Downloader
 
-  PROGRAMME_URL  = 'http://www.bbc.co.uk/iplayer/page/item/%s.shtml'
+  PROGRAMME_URL  = 'http://www.bbc.co.uk/iplayer/episode/%s'
+  IPHONE_URL     = 'http://www.bbc.co.uk/iplayer/mobile/index.html'
   SELECTOR_URL   = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
   BUG_URL        = 'http://www.bbc.co.uk/iplayer/framework/img/o.gif?%d'
   MAX_SEGMENT    = 4 * 1024 * 1024
@@ -28,13 +29,7 @@ class Downloader
   end
   
   def available_versions
-    versions.inject([]){ |av, version|
-      if (version[:iplayer_streaming_http_mp4].any?{ |stream|
-        stream[:start] < DateTime.now && stream[:end] > DateTime.now })
-        av << Version.new(version[:type], version[:pid])
-      end
-      av
-    }
+    [Version.new('Default', actual_pid)]
   end
 
   def download(version_pid, io, initial_offset=0, &blk)
@@ -57,40 +52,32 @@ class Downloader
 
 private
 
-  def versions
-    begin
-      JavaScript.parse(programme_page_html[/ iplayer\.versions \s* = \s* ( \[ .*? \] ); /mx, 1])
-    rescue 
-      raise ParsingError
-    end
+  def actual_pid
+    programme_page_html[/iplayer\.episode\.setPidData\("[^"]+","([^"]+)"\);/, 1]
   end
 
   def programme_page
-    response = get(page_url, Browser::IPHONE_UA)
+    response = get(PROGRAMME_URL % pid, Browser::DESKTOP_UA)
+    raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
+    response
+  end
+
+  def request_iphone_page
+    response = get(IPHONE_URL, Browser::IPHONE_UA)
     raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
     self.cookies = response.cookies.join('; ')
-    response
   end
 
   def programme_page_html
     @programme_page_html ||= programme_page.body
   end
 
-  def page_url
-    PROGRAMME_URL % pid
-  end
-
   def request_image_bugs
-    host = URI.parse(page_url)
-    bugs = (programme_page_html.scan(%r{[^"']+?/o\.gif[^"']+}).map{ |src|
-      URI.join(src).to_s
-    } + [(BUG_URL % [(rand * 100000).floor])]).uniq
-    bugs.each do |url|
-      get(url, Browser::IPHONE_UA)
-    end
+    get(BUG_URL % [(rand * 100000).floor], Browser::IPHONE_UA)
   end
 
   def real_stream_location(version_pid)
+    request_iphone_page
     request_image_bugs
 
     # Get the auth URL
