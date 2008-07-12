@@ -111,12 +111,13 @@ ARGV.each do |pid|
       offset = 0
     end
 
+    $stderr.puts "#{ filename } (#{ version.name })"
     File.open(path, 'a+b') do |io|
       downloader.download(version.pid, io, offset) do |position, max|
         percentage = "%.1f" % [((1000 * position) / max) / 10.0]
         if percentage != old_percentage
           old_percentage = percentage
-          $stderr.print "\r#{ percentage }% #{ filename } (#{ version.name })"
+          $stderr.print "\r#{ percentage }%"
           $stderr.flush
         end
       end
