@@ -58,6 +58,9 @@ private
 
   def programme_page
     response = get(PROGRAMME_URL % pid, Browser::DESKTOP_UA)
+    if response.body =~ /outsideuk/
+      raise OutsideUK
+    end
     raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
     response
   end

@@ -5,10 +5,14 @@ module Errors
 
   class ParsingError < RecognizedError
     def to_s
-      "Unable to parse the programme page. Possible reasons:\n"+
-      "1. The iPlayer has changed\n"+ 
-      "2. You are outside the UK (and not using a UK proxy).\n"+
-      "3. The BBC think that you are outside the UK."
+      "Unable to parse the programme page. Perhaps the iPlayer has changed." 
+    end
+  end
+
+  class OutsideUK < RecognizedError
+    def to_s
+      "The BBC's geolocation has determined that you are outside the UK.\n"+
+      "You can try using a UK proxy."
     end
   end
 
