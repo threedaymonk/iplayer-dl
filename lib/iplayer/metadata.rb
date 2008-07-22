@@ -5,7 +5,7 @@ module IPlayer
 class Metadata
   include IPlayer::Errors
 
-  METADATA_URL = 'http://www.bbc.co.uk/iplayer/metafiles/episode/%s.xml'
+  METADATA_URL = 'http://www.bbc.co.uk/iplayer/playlist/%s'
 
   def initialize(pid, browser)
     @pid = pid
@@ -19,15 +19,11 @@ class Metadata
   end
 
   def title
-    REXML::XPath.first(metadata, '//iplayerMedia/concept/title').text
-  end
-
-  def subtitle
-    REXML::XPath.first(metadata, '//iplayerMedia/concept/subtitle').text rescue nil
+    REXML::XPath.first(metadata, '//playlist/title').text
   end
 
   def full_title
-    [title, subtitle].compact.join(' - ')
+    title.gsub(/\s*:\s*/, ' - ')
   end
 
 end
