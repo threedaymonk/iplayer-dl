@@ -3,11 +3,11 @@ require 'rake/packagetask'
 require 'rake/rdoctask'
 require 'rake'
 require 'find'
+require 'lib/iplayer/version'
 
 # Globals
 
 PKG_NAME = 'iplayer-dl'
-PKG_VERSION = '0.1.10'
 
 PKG_FILES = %w[ COPYING README setup.rb Rakefile ]
 Find.find('lib/', 'test/', 'bin/', 'res/') do |f|
@@ -29,14 +29,14 @@ Rake::TestTask.new do |t|
   t.test_files = FileList['test/test_*.rb']
 end
 
-Rake::PackageTask.new(PKG_NAME, PKG_VERSION) do |p|
+Rake::PackageTask.new(PKG_NAME, IPlayer::VERSION) do |p|
   p.need_tar_gz = true
   p.package_files = PKG_FILES
 end
 
 task :exe do |t|
   mkdir_p 'tmp'
-  build_dir = File.join('tmp', 'ipdl')
+  build_dir = File.join('tmp', "ipdl-#{IPlayer::GUI_VERSION}")
   rm_rf build_dir
   mkdir build_dir
   EXE_FILES.each do |file|

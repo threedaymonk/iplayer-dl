@@ -10,6 +10,7 @@
 require 'iplayer'
 require 'iplayer/gui/app'
 require 'iplayer/gui/main_frame'
+require 'iplayer/version'
 
 options = {
   :type_preference  => %w[original signed],
@@ -17,7 +18,7 @@ options = {
 }
 about = {
   :name        => 'iPlayer Downloader',
-  :version     => '1.6',
+  :version     => IPlayer::GUI_VERSION,
   :developers  => ['Paul Battley'],
   :description => "Download programmes from the BBC iPlayer.\nVisit http://po-ru.com/ for more information."
 }
