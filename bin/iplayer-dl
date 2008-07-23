@@ -49,6 +49,10 @@ opts = ARGV.options{ |o|
     'Specify an HTTP proxy.',
     'Default is taken from the http_proxy environment variable.'
   ) { |OPTIONS[:http_proxy]| }
+  o.on(
+    '-l', '--pid-list=FILENAME', String,
+    'List PIDs to be downloaded in a file, one per line.'
+  ) { |OPTIONS[:pid_list]| }
   o.on_tail(
     '-h', '--help', 
     'Show this help message.'
@@ -57,8 +61,12 @@ opts = ARGV.options{ |o|
 
 begin
   opts.parse!
-  raise 'no programme identifier specified' if ARGV.empty?
-  raise 'specifying the file name does not work with multiple downloads' if OPTIONS[:filename] && ARGV.length > 1
+  pids = ARGV
+  if OPTIONS[:pid_list]
+    pids += File.read(OPTIONS[:pid_list]).strip.split(/\s*\r?\n\s*/)
+  end
+  raise 'no programme identifier specified' if pids.empty?
+  raise 'specifying the file name does not work with multiple downloads' if OPTIONS[:filename] && pids.length > 1
 rescue => exception
   $stderr.puts 'Error: '+exception, ''
   puts opts
@@ -74,7 +82,7 @@ else
   http = Net::HTTP
 end
 
-ARGV.each do |pid|
+pids.each do |pid|
   if pid =~ %r!/(?:item|episode)/([a-z0-9]{8})!
     pid = $1
   end
