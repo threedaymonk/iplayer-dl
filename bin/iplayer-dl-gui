@@ -17,7 +17,7 @@ options = {
 }
 about = {
   :name        => 'iPlayer Downloader',
-  :version     => '1.5',
+  :version     => '1.6',
   :developers  => ['Paul Battley'],
   :description => "Download programmes from the BBC iPlayer.\nVisit http://po-ru.com/ for more information."
 }
