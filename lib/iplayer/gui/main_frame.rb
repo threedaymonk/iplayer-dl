@@ -36,6 +36,7 @@ class MainFrame < Wx::Frame
   def set_properties
     set_background_colour(SystemSettings.get_colour(SYS_COLOUR_3DFACE))
     self.icon = Icon.new(File.join(File.dirname(__FILE__), '..', '..', '..', 'res', 'icon32.png'), BITMAP_TYPE_PNG)
+  rescue
   end
 
   def do_layout
