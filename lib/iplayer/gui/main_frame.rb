@@ -35,8 +35,12 @@ class MainFrame < Wx::Frame
 
   def set_properties
     set_background_colour(SystemSettings.get_colour(SYS_COLOUR_3DFACE))
-    self.icon = Icon.new(File.join(File.dirname($0), '..', 'share', 'pixmaps', 'iplayer-dl', 'icon32.png'), BITMAP_TYPE_PNG)
-  rescue
+    relative_icon_path = File.join('share', 'pixmaps', 'iplayer-dl', 'icon32.png')
+    icon_path = [
+      File.join(File.dirname($0), '..', relative_icon_path),
+      File.join(File.dirname(__FILE__), '..', '..', '..', relative_icon_path)
+    ].find{ |p| File.exist?(p) }
+    self.icon = Icon.new(icon_path, BITMAP_TYPE_PNG) if icon_path
   end
 
   def do_layout
