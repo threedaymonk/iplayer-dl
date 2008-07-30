@@ -18,9 +18,9 @@ options = {
 }
 about = {
   :name        => 'iPlayer Downloader',
-  :version     => IPlayer::GUI_VERSION,
+  :version     => "#{IPlayer::GUI_VERSION} (library #{IPlayer::VERSION})",
   :developers  => ['Paul Battley'],
-  :description => "Download programmes from the BBC iPlayer.\nVisit http://po-ru.com/ for more information."
+  :description => "Download programmes from the BBC iPlayer.\nVisit http://po-ru.com/projects/iplayer-downloader/\nfor more information."
 }
 app = IPlayer::GUI::App.new(IPlayer::GUI::MainFrame, about, options)
 app.main_loop
