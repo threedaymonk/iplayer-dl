@@ -4,7 +4,7 @@ module IPlayer
 class Downloader
 
   PROGRAMME_URL  = 'http://www.bbc.co.uk/iplayer/episode/%s'
-  IPHONE_URL     = 'http://www.bbc.co.uk/iplayer/mobile/index.html'
+  IPHONE_URL     = 'http://www.bbc.co.uk/mobile/iplayer/index.html'
   SELECTOR_URL   = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
   BUG_URL        = 'http://www.bbc.co.uk/iplayer/framework/img/o.gif?%d'
   MAX_SEGMENT    = 4 * 1024 * 1024
