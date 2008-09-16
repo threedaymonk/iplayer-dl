@@ -33,7 +33,7 @@ opts = ARGV.options{ |o|
     '-d', '--download-path=PATH', String,
     'Location into which downloaded files will be saved.',
     'Default is current working directory.'
-  ) { |OPTIONS[:download_path]| }
+  ) { |d| OPTIONS[:download_path] = d }
   o.on(
     '-s', '--title-subdir',
     'Place downloaded files in a sub-directory named after the title of the programme.'
@@ -43,16 +43,16 @@ opts = ARGV.options{ |o|
     'Manually specify a name for the downloaded file.',
     'The default is constructed from the programme metadata.',
     'Do not use this with multiple downloads!'
-  ) { |OPTIONS[:filename]| }
+  ) { |f| OPTIONS[:filename] = f }
   o.on(
     '-p', '--http-proxy=HOST:PORT', String,
     'Specify an HTTP proxy.',
     'Default is taken from the http_proxy environment variable.'
-  ) { |OPTIONS[:http_proxy]| }
+  ) { |p| OPTIONS[:http_proxy] = p }
   o.on(
     '-l', '--pid-list=FILENAME', String,
     'List PIDs to be downloaded in a file, one per line.'
-  ) { |OPTIONS[:pid_list]| }
+  ) { |l| OPTIONS[:pid_list] = l }
   o.on_tail(
     '-h', '--help', 
     'Show this help message.'
