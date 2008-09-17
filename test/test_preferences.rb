@@ -2,6 +2,7 @@ $:.unshift( File.join( File.dirname(__FILE__), '..', 'lib' ))
 require 'test/unit'
 require 'mocha'
 require 'iplayer/preferences'
+require 'stringio'
 
 class PreferencesTestWithDefaults < Test::Unit::TestCase
 
@@ -95,5 +96,80 @@ class PreferencesTestWhenLoading < Test::Unit::TestCase
       IPlayer::Preferences.new(env, 'lunix')
     end
   end
+end
+
+class PreferencesWhenSaving < Test::Unit::TestCase
+
+  def test_should_write_to_dotfile_in_home_directory_on_posix_platforms
+    env = {'HOME' => '/home/peter'}
+    File.expects(:open).with('/home/peter/.iplayer-dl', 'w').yields(StringIO.new)
+    prefs = IPlayer::Preferences.new(env, 'lunix')
+    prefs.subdirs = true
+    prefs.save
+  end
+
+  def test_should_write_to_preference_file_in_appdata_directory_on_windows
+    env = {'APPDATA' => 'C:\Documents and Settings\Peter\Application Data'}
+    File.expects(:open).with('C:\Documents and Settings\Peter\Application Data/iplayer-dl', 'w').yields(StringIO.new)
+    prefs = IPlayer::Preferences.new(env, 'i386-mswin32')
+    prefs.subdirs = true
+    prefs.save
+  end
+
+  def test_should_save_all_details
+    prefs = IPlayer::Preferences.new
+    io = StringIO.new(yaml = '')
+    File.stubs(:open).with(anything, 'w').yields(io)
+
+    prefs.type_preference = %w[foo bar]
+    prefs.download_path   = '/nowhere'
+    prefs.http_proxy      = 'localhost:3128'
+    prefs.subdirs         = true
+    prefs.save
+
+    expected = {
+      'type_preference' => %w[foo bar],
+      'download_path'   => '/nowhere',
+      'http_proxy'      => 'localhost:3128',
+      'subdirs'         => true
+    }
+
+    assert_equal expected, YAML.load(yaml)
+  end
+
+  def test_should_not_save_details_that_were_not_changed
+    prefs = IPlayer::Preferences.new
+    io = StringIO.new(yaml = '')
+    File.stubs(:open).with(anything, 'w').yields(io)
+
+    prefs.http_proxy = 'localhost:3128'
+    prefs.save
+
+    expected = {'http_proxy' => 'localhost:3128'}
+
+    assert_equal expected, YAML.load(yaml)
+  end
+
+  def test_should_not_save_details_that_were_set_to_the_same_value
+    prefs = IPlayer::Preferences.new
+    io = StringIO.new(yaml = '')
+    File.stubs(:open).with(anything, 'w').yields(io)
+
+    prefs.http_proxy = 'localhost:3128'
+    prefs.type_preference = prefs.type_preference
+    prefs.save
+
+    expected = {'http_proxy' => 'localhost:3128'}
+
+    assert_equal expected, YAML.load(yaml)
+  end
+
+  def test_should_not_save_at_all_if_nothing_has_changed
+    prefs = IPlayer::Preferences.new
+    File.expects(:open).with(anything, 'w').never
+
+    prefs.save
+  end
+
 end
 

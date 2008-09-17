@@ -7,6 +7,7 @@ class Preferences
     @env      = env
     @platform = platform
     @hash     = {}
+    @dirty    = []
     reload
   end
 
@@ -25,12 +26,24 @@ class Preferences
     @hash.merge!( YAML.load(File.read(filename)) || {} )
   end
 
+  def save
+    return if @dirty.empty?
+    File.open(filename, 'w') do |io|
+      io << YAML.dump(dirty_subset)
+    end
+  end
+
   def method_missing(msg, *params)
-    message = msg.to_s
-    if m = message.match(/^([^=]+)=$/)
-      @hash[m[1]] = params.first
+    key = msg.to_s
+    if m = key.match(/^([^=]+)=$/)
+      key = m[1]
+      value = params.first
+      unless @hash[key] == value
+        @hash[key] = params.first
+        @dirty << key
+      end
     else
-      @hash[message]
+      @hash[key]
     end
   end
 
@@ -47,6 +60,10 @@ private
     else
       File.join(@env['HOME'], '.iplayer-dl')
     end
+  end
+
+  def dirty_subset
+    @hash.inject({}){ |hash, (k,v)| hash[k] = v if @dirty.include?(k) ; hash }
   end
 
 end
