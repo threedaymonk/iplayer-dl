@@ -80,7 +80,7 @@ class MainFrame < Wx::Frame
     @download_button.disable
     filename = @app.get_default_filename(pid)
 
-    fd = FileDialog.new(nil, 'Save as', '', filename, 'iPlayer Movies (*.mov)|*.mov', FD_SAVE)
+    fd = FileDialog.new(nil, 'Save as', '', filename, 'iPlayer Programmes|*.mov;*.mp3|', FD_SAVE)
 
     if fd.show_modal == ID_OK
       path = fd.get_path

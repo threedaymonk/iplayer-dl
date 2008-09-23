@@ -58,11 +58,14 @@ class App < Wx::App
   def get_default_filename(pid)
     self.yield
     begin
-      title = Metadata.new(pid, @browser).full_title
+      metadata = Metadata.new(pid, @browser)
+      title    = metadata.full_title
+      filetype = metadata.filetype
     rescue MetadataError
-      title = pid
+      title    = pid
+      filetype = 'mov'
     end
-    "#{ title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+    "#{ title }.#{ filetype }".gsub(/[^a-z0-9 \-\.]+/i, '')
   end
 
   def name

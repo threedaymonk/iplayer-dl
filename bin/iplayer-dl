@@ -98,7 +98,7 @@ pids.each do |pid|
 
     if filename.nil? || preferences.subdirs
       metadata = Metadata.new(pid, browser)
-      filename ||= "#{ metadata.full_title }.mov".gsub(/[^a-z0-9 \-\.]+/i, '')
+      filename ||= "#{ metadata.full_title }.#{ metadata.filetype }".gsub(/[^a-z0-9 \-\.]+/i, '')
     end
     if preferences.subdirs
       subdir = metadata.title.gsub(/[^a-z0-9 \-\.]+/i, '')

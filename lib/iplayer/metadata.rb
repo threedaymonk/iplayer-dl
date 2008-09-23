@@ -20,6 +20,10 @@ class Metadata
     mixed_title.gsub(/\s*:\s*/, ' - ')
   end
 
+  def filetype
+    radio? ? 'mp3' : 'mov'
+  end
+
 private
 
   def metadata
@@ -30,6 +34,19 @@ private
 
   def mixed_title
     REXML::XPath.first(metadata, '//playlist/title').text
+  end
+
+  def programme_type
+    # this could be done more easily if REXML actually worked properly
+    REXML::XPath.each(metadata, '//playlist/item') do |node|
+      kind = node.attributes['kind']
+      return kind if kind
+    end
+    return nil
+  end
+
+  def radio?
+    programme_type == 'radioProgramme'
   end
 
 end
