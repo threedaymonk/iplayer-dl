@@ -15,8 +15,9 @@ include IPlayer
 include IPlayer::Errors
 
 preferences = IPlayer::Preferences.new
-filenames = []
-pid_list = nil
+filenames   = []
+pid_list    = nil
+dry_run     = false
 
 opts = ARGV.options{ |o|
   o.banner << ' IDENTIFIER [IDENTIFIER [...]]'
@@ -52,6 +53,10 @@ opts = ARGV.options{ |o|
     '-l', '--pid-list=FILENAME', String,
     'List PIDs to be downloaded in a file, one per line.'
   ) { |l| pid_list = l }
+  o.on(
+    '-n', '--dry-run', String,
+    'Parse the iPlayer page and output the filename but don\'t actually download (useful for scripting).'
+  ) { |n| dry_run = true }
   o.on_tail(
     '-h', '--help', 
     'Show this help message.'
@@ -109,26 +114,30 @@ pids.each_with_index do |pid, i|
       path = File.expand_path( File.join( preferences.download_path, filename ))
     end
 
-    old_percentage = nil
-    if File.exist?(path)
-      offset = File.size(path)
-      $stderr.puts "Resuming download at #{offset} bytes."
+    if dry_run
+      $stdout.puts filename
     else
-      offset = 0
-    end
+      old_percentage = nil
+      if File.exist?(path)
+        offset = File.size(path)
+        $stderr.puts "Resuming download at #{offset} bytes."
+      else
+        offset = 0
+      end
 
-    $stderr.puts "#{ filename } (#{ version.name })"
-    File.open(path, 'a+b') do |io|
-      downloader.download(version.pid, io, offset) do |position, max|
-        percentage = "%.1f" % [((1000 * position) / max) / 10.0]
-        if percentage != old_percentage
-          old_percentage = percentage
-          $stderr.print "\r#{ percentage }%"
-          $stderr.flush
+      $stderr.puts "#{ filename } (#{ version.name })"
+      File.open(path, 'a+b') do |io|
+        downloader.download(version.pid, io, offset) do |position, max|
+          percentage = "%.1f" % [((1000 * position) / max) / 10.0]
+          if percentage != old_percentage
+            old_percentage = percentage
+            $stderr.print "\r#{ percentage }%"
+            $stderr.flush
+          end
         end
       end
+      $stderr.puts
     end
-    $stderr.puts
 
   rescue RecognizedError => error
     $stderr.puts(error.to_s)
