@@ -86,7 +86,7 @@ else
 end
 
 pids.each_with_index do |pid, i|
-  if pid =~ %r!/(?:item|episode)/([a-z0-9]{8})!
+  if pid =~ %r!/(?:item|episode|programmes)/([a-z0-9]{8})!
     pid = $1
   end
 

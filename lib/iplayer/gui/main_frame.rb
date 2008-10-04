@@ -73,7 +73,7 @@ class MainFrame < Wx::Frame
     if pid.empty?
       message_box('You must specify a programme ID before I can download it.')
       return
-    elsif pid =~ %r!/(?:item|episode)/([a-z0-9]{8})!
+    elsif pid =~ %r!/(?:item|episode|programmes)/([a-z0-9]{8})!
       pid = $1
     end
 
