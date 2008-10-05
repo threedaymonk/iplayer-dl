@@ -34,6 +34,7 @@ Rake::PackageTask.new(PKG_NAME, IPlayer::VERSION) do |p|
   p.package_files = PKG_FILES
 end
 
+desc "Build a Windows executable. Needs rubyscript2exe.rb in the current path and the wx gem installed."
 task :exe do |t|
   mkdir_p 'tmp'
   build_dir = File.join('tmp', "ipdl-#{IPlayer::GUI_VERSION}")
@@ -47,4 +48,6 @@ task :exe do |t|
   end
   sh "ruby rubyscript2exe.rb #{build_dir} --rubyscript2exe-verbose --rubyscript2exe-rubyw"
   rm_rf build_dir
+  mkdir_p 'pkg'
+  mv "ipdl-#{IPlayer::GUI_VERSION}.exe", "pkg"
 end
