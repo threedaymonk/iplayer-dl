@@ -1,4 +1,4 @@
 module IPlayer
-  VERSION     = '0.1.12'
-  GUI_VERSION = '1.8'
+  VERSION     = '0.1.13'
+  GUI_VERSION = '1.9'
 end
