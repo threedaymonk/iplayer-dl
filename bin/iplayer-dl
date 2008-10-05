@@ -86,14 +86,12 @@ else
 end
 
 pids.each_with_index do |pid, i|
-  if pid =~ %r!/(?:item|episode|programmes)/([a-z0-9]{8})!
-    pid = $1
-  end
-
   browser = Browser.new(http)
-  downloader = Downloader.new(browser, pid)
 
   begin
+    pid = Downloader.extract_pid(pid)
+    downloader = Downloader.new(browser, pid)
+
     available_versions = downloader.available_versions
     raise MP4Unavailable if available_versions.empty?
     version = available_versions.sort_by{ |v| 
@@ -140,7 +138,7 @@ pids.each_with_index do |pid, i|
     end
 
   rescue RecognizedError => error
-    $stderr.puts(error.to_s)
+    $stderr.puts(error.to_str)
     next
   end
 end

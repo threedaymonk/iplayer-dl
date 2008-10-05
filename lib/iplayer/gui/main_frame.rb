@@ -73,8 +73,13 @@ class MainFrame < Wx::Frame
     if pid.empty?
       message_box('You must specify a programme ID before I can download it.')
       return
-    elsif pid =~ %r!/(?:item|episode|programmes)/([a-z0-9]{8})!
-      pid = $1
+    else
+      begin
+        pid = Downloader.extract_pid(pid)
+      rescue NotAPid => error
+        message_box(error.to_str, :title => 'Error')
+        return
+      end
     end
 
     @download_button.disable
@@ -96,7 +101,7 @@ class MainFrame < Wx::Frame
           @status_bar.set_status_text(percentage+"%", 2) 
         end
       rescue RecognizedError => error
-        message_box(error.to_s, :title => 'Error')
+        message_box(error.to_str, :title => 'Error')
       rescue Exception => error
         message_box("#{error.message} (#{error.class})\n#{error.backtrace.first}", :title => 'Error')
       end

@@ -17,6 +17,17 @@ class Downloader
   attr_reader   :browser, :pid
   attr_accessor :cookies
 
+  def self.extract_pid(pid_or_url)
+    case pid_or_url
+    when %r!/(?:item|episode|programmes)/([a-z0-9]{8})!
+      $1
+    when %r!^[a-z0-9]{8}$!
+      pid_or_url
+    else
+      raise NotAPid, pid_or_url
+    end
+  end
+
   def initialize(browser, pid)
     @browser = browser
     @pid = pid
