@@ -18,7 +18,8 @@ module Errors
 
   class FileUnavailable < RecognizedError
     def to_str
-      "An MP4 URL was found, but the download failed."
+      "The programme file is not currently available.\n"+
+      "If it's new, try again later."
     end
   end
   
