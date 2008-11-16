@@ -25,7 +25,7 @@ module Errors
   
   class MP4Unavailable < RecognizedError
     def to_str
-      "This programme is not currently available in an MP4 version."
+      "This programme is not currently available in an MP3 or MPEG4 version."
     end
   end
 
