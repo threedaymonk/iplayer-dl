@@ -64,11 +64,16 @@ class Downloader
 private
 
   def actual_pid
-    programme_page_html[/iplayer\.episode\.setPidData\("[^"]+","([^"]+)"\);/, 1]
+    programme_page_html[/iplayer\.episode\.setPid\("[^"]+","([^"]+)"\);/, 1]
   end
 
   def programme_page
-    response = get(PROGRAMME_URL % pid, Browser::DESKTOP_UA)
+    location = PROGRAMME_URL % pid
+    response = get(location, Browser::DESKTOP_UA)
+    if new_location = response['location']
+      location = URI.parse(location).merge(new_location).to_s
+      response = get(location, Browser::DESKTOP_UA)
+    end
     if response.body =~ /outsideuk/
       raise OutsideUK
     end
