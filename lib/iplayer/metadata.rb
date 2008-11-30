@@ -24,6 +24,17 @@ class Metadata
     radio? ? 'mp3' : 'mov'
   end
 
+  def versions
+    versions = {}
+    REXML::XPath.each(metadata, '//playlist/item') do |node|
+      version_pid = node.attributes['identifier']
+      next unless version_pid
+      alternate = REXML::XPath.first(node, 'alternate')
+      versions[alternate.attributes['id']] = version_pid
+    end
+    versions
+  end
+
 private
 
   def metadata

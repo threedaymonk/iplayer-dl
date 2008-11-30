@@ -3,7 +3,6 @@ require 'tempfile'
 module IPlayer
 class Downloader
 
-  PROGRAMME_URL  = 'http://www.bbc.co.uk/iplayer/episode/%s'
   IPHONE_URL     = 'http://www.bbc.co.uk/mobile/iplayer/index.html'
   SELECTOR_URL   = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
   BUG_URL        = 'http://www.bbc.co.uk/iplayer/framework/img/o.gif?%d'
@@ -33,6 +32,10 @@ class Downloader
     @pid = pid
   end
 
+  def metadata
+    @metadata = Metadata.new(@pid, @browser)
+  end
+
   def get(url, user_agent, options={}, &blk)
     options['User-Agent'] = user_agent
     options['Cookie'] = cookies if cookies
@@ -40,7 +43,7 @@ class Downloader
   end
   
   def available_versions
-    [Version.new('Default', actual_pid)]
+    metadata.versions.map{ |name, vpid| Version.new(name, vpid) }
   end
 
   def download(version_pid, io, initial_offset=0, &blk)
@@ -63,32 +66,10 @@ class Downloader
 
 private
 
-  def actual_pid
-    programme_page_html[/iplayer\.episode\.setPid\("[^"]+","([^"]+)"\);/, 1]
-  end
-
-  def programme_page
-    location = PROGRAMME_URL % pid
-    response = get(location, Browser::DESKTOP_UA)
-    if new_location = response['location']
-      location = URI.parse(location).merge(new_location).to_s
-      response = get(location, Browser::DESKTOP_UA)
-    end
-    if response.body =~ /outsideuk/
-      raise OutsideUK
-    end
-    raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
-    response
-  end
-
   def request_iphone_page
     response = get(IPHONE_URL, Browser::IPHONE_UA)
     raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
     self.cookies = response.cookies.join('; ')
-  end
-
-  def programme_page_html
-    @programme_page_html ||= programme_page.body
   end
 
   def request_image_bugs

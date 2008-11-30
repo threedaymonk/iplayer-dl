@@ -105,7 +105,7 @@ pids.each_with_index do |pid, i|
 
     filename = filenames[i]
     if filename.nil? || preferences.subdirs
-      metadata = Metadata.new(pid, browser)
+      metadata = downloader.metadata
       filename ||= "#{ metadata.full_title }.#{ metadata.filetype }".gsub(/[^a-z0-9 \-\.]+/i, '')
     end
     if preferences.subdirs

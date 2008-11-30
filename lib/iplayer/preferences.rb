@@ -13,7 +13,7 @@ class Preferences
 
   def reset_defaults
     @hash = {
-      'type_preference' => %w[original signed],
+      'type_preference' => %w[default signed],
       'download_path'   => Dir.pwd,
       'http_proxy'      => @env['http_proxy'],
       'subdirs'         => false
