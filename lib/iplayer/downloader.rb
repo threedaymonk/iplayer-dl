@@ -22,6 +22,8 @@ class Downloader
       $1
     when %r!^[a-z0-9]{8}$!
       pid_or_url
+    when %r!(b0[a-z0-9]{6})!
+      $1
     else
       raise NotAPid, pid_or_url
     end
