@@ -9,6 +9,7 @@
 require 'iplayer'
 require 'optparse'
 require 'fileutils'
+require 'iplayer/version'
 require 'iplayer/preferences'
 
 include IPlayer
@@ -57,6 +58,10 @@ opts = ARGV.options{ |o|
     '-n', '--dry-run', String,
     'Parse the iPlayer page and output the filename but don\'t actually download (useful for scripting).'
   ) { |n| dry_run = true }
+  o.on(
+    '-v', '--version',
+    'Show the software version.'
+  ) { puts IPlayer::VERSION; exit }
   o.on_tail(
     '-h', '--help', 
     'Show this help message.'
