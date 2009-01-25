@@ -40,6 +40,10 @@ opts = ARGV.options{ |o|
     'Place downloaded files in a sub-directory named after the title of the programme.'
   ) { preferences.subdirs = true }
   o.on(
+    '-u', '--subtitles',
+    'Also download subtitles.'
+  ) { preferences.subtitles = true }
+  o.on(
     '-f', '--filename=FILENAME', String,
     'Manually specify a name for the downloaded file.',
     'The default is constructed from the programme metadata.',
@@ -124,7 +128,8 @@ pids.each_with_index do |pid, i|
       first_chunk = true
 
       $stderr.puts "#{ filename } (#{ version.name })"
-      downloader.download(version.pid, path) do |position, max|
+      download_options = {:subtitles => preferences.subtitles}
+      downloader.download(version.pid, path, download_options) do |position, max|
         if first_chunk
           $stderr.puts "Resuming download at #{position} bytes." if position > 0
           first_chunk = false

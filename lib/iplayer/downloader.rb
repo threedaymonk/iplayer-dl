@@ -48,7 +48,11 @@ class Downloader
     metadata.versions.map{ |name, vpid| Version.new(name, vpid) }
   end
 
-  def download(version_pid, path, &blk)
+  def download(version_pid, path, options={}, &blk)
+    if options[:subtitles]
+      download_subtitles(version_pid, path)
+    end
+
     if File.exist?(path)
       offset = File.size(path)
     else
@@ -114,5 +118,15 @@ private
     return content_range[/\d+$/].to_i
   end
 
+  def download_subtitles(version_pid, media_path)
+    subtitles = Subtitles.new(version_pid, browser)
+    xml = subtitles.w3c_timed_text
+    return if xml.nil?
+    subtitles_path = media_path.sub(/\.[^\.]+$/, '.xml')
+    return if File.exist?(subtitles_path)
+    File.open(subtitles_path, 'w') do |f|
+      f << xml
+    end
+  end
 end
 end
