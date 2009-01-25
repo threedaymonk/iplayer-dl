@@ -13,7 +13,7 @@ class PreferencesTestWithDefaults < Test::Unit::TestCase
   def test_should_start_with_sensible_default_type_preference
     prefs = IPlayer::Preferences.new
 
-    assert_equal ['original', 'signed'], prefs.type_preference
+    assert_equal ['default', 'signed'], prefs.type_preference
   end
 
   def test_should_use_current_working_directory_for_download_path
@@ -52,7 +52,7 @@ class PreferencesTestWithDefaults < Test::Unit::TestCase
     prefs = IPlayer::Preferences.new
     prefs.type_preferences = ['foo', 'bar']
     prefs.reset_defaults
-    assert_equal ['original', 'signed'], prefs.type_preference
+    assert_equal ['default', 'signed'], prefs.type_preference
   end
 
 end
