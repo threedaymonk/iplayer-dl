@@ -48,19 +48,26 @@ class Downloader
     metadata.versions.map{ |name, vpid| Version.new(name, vpid) }
   end
 
-  def download(version_pid, io, initial_offset=0, &blk)
-    location = real_stream_location(version_pid)
-    content_length = content_length_from_initial_request(location)
-    offset = initial_offset
-    yield(offset, content_length) if block_given?
-
-    offset.step(content_length - 1, MAX_SEGMENT) do |first_byte|
-      last_byte = [first_byte + MAX_SEGMENT - 1, content_length - 1].min
-      get(location, Browser::QT_UA, 'Range'=>"bytes=#{first_byte}-#{last_byte}") do |response|
-        response.read_body do |data|
-          offset += data.length
-          io << data
-          yield(offset, content_length) if block_given?
+  def download(version_pid, path, &blk)
+    if File.exist?(path)
+      offset = File.size(path)
+    else
+      offset = 0
+    end
+    
+    File.open(path, 'a+b') do |io|    
+      location = real_stream_location(version_pid)
+      content_length = content_length_from_initial_request(location)
+      yield(offset, content_length) if block_given?
+      
+      offset.step(content_length - 1, MAX_SEGMENT) do |first_byte|
+        last_byte = [first_byte + MAX_SEGMENT - 1, content_length - 1].min
+        get(location, Browser::QT_UA, 'Range'=>"bytes=#{first_byte}-#{last_byte}") do |response|
+          response.read_body do |data|
+            offset += data.length
+            io << data
+            yield(offset, content_length) if block_given?
+          end
         end
       end
     end

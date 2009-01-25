@@ -121,22 +121,20 @@ pids.each_with_index do |pid, i|
       $stdout.puts filename
     else
       old_percentage = nil
-      if File.exist?(path)
-        offset = File.size(path)
-        $stderr.puts "Resuming download at #{offset} bytes."
-      else
-        offset = 0
-      end
+      first_chunk = true
 
       $stderr.puts "#{ filename } (#{ version.name })"
-      File.open(path, 'a+b') do |io|
-        downloader.download(version.pid, io, offset) do |position, max|
-          percentage = "%.1f" % [((1000 * position) / max) / 10.0]
-          if percentage != old_percentage
-            old_percentage = percentage
-            $stderr.print "\r#{ percentage }%"
-            $stderr.flush
-          end
+      downloader.download(version.pid, path) do |position, max|
+        if first_chunk
+          $stderr.puts "Resuming download at #{position} bytes." if position > 0
+          first_chunk = false
+        end
+        
+        percentage = "%.1f" % [((1000 * position) / max) / 10.0]
+        if percentage != old_percentage
+          old_percentage = percentage
+          $stderr.print "\r#{ percentage }%"
+          $stderr.flush
         end
       end
       $stderr.puts

@@ -35,19 +35,12 @@ class App < Wx::App
       @options[:type_preference].index(v.name) || 100 
     }.first
 
-    if File.exist?(path)
-      offset = File.size(path)
-    else
-      offset = 0
-    end
     self.yield
 
-    File.open(path, 'a+b') do |io|
-      downloader.download(version.pid, io, offset) do |position, max|
-        return if check_flag(:stop_download)
-        yield position, max
-        self.yield
-      end
+    downloader.download(version.pid, path) do |position, max|
+      return if check_flag(:stop_download)
+      yield position, max
+      self.yield
     end
   end
 
