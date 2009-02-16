@@ -127,7 +127,7 @@ pids.each_with_index do |pid, i|
       old_percentage = nil
       first_chunk = true
 
-      $stderr.puts "#{ filename } (#{ version.name })"
+      $stderr.puts "#{ filename } (version: #{ version.name })"
       download_options = {:subtitles => preferences.subtitles}
       downloader.download(version.pid, path, download_options) do |position, max|
         if first_chunk
