@@ -27,10 +27,9 @@ class Metadata
   def versions
     versions = {}
     REXML::XPath.each(metadata, '//playlist/item') do |node|
-      version_pid = node.attributes['identifier']
-      next unless version_pid
-      alternate = REXML::XPath.first(node, 'alternate')
-      versions[alternate.attributes['id']] = version_pid
+      version_pid = node.attributes['identifier'] or next
+      alternate_id = REXML::XPath.first(node, 'alternate').attributes['id'] rescue 'anonymous'
+      versions[alternate_id] = version_pid
     end
     versions
   end

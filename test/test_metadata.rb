@@ -51,4 +51,25 @@ class MetadataTest < Test::Unit::TestCase
     expected = {'default' => 'b00ftblc', 'signed' => 'b00fvy5y'}
     assert_equal expected, metadata.versions
   end
+
+  def test_should_call_version_anonymous_if_the_beeb_do_not_give_an_alternate_an_id
+    xml = %{
+      <?xml version="1.0" encoding="UTF-8"?>
+      <playlist xmlns="http://bbc.co.uk/2008/emp/playlist" revision="1">
+        <item kind="programme" duration="2700" identifier="b00htg55" group="b00hklrs" publisher="pips">
+          <tempav>1</tempav>
+          <id>tag:bbc.co.uk,2008:pips:b00htg55</id>
+          <service id="bbc_two" href="http://www.bbc.co.uk/iplayer/bbc_two">BBC Two</service>
+          <masterbrand id="bbc_one" href="http://www.bbc.co.uk/iplayer/bbc_one">BBC One</masterbrand>
+          <guidance id="W1">Contains adult humour.</guidance>
+          <mediator identifier="b00htg55" name="pips"/>
+        </item>
+      </playlist>
+    }
+    pid = 'abc'
+    browser = stub(:get => stub(:body => xml))
+    metadata = IPlayer::Metadata.new(pid, browser)
+    expected = {'anonymous' => 'b00htg55'}
+    assert_equal expected, metadata.versions
+  end
 end
