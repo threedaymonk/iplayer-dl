@@ -35,7 +35,6 @@ class Browser
   DEFAULT_HEADERS = {
     'Accept'          => '*/*',
     'Accept-Language' => 'en',
-    'Accept-Encoding' => 'gzip, deflate',
     'Connection'      => 'keep-alive',
     'Pragma'          => 'no-cache'
   }
