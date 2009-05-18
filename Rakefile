@@ -51,3 +51,17 @@ task :exe do |t|
   mkdir_p 'pkg'
   mv "ipdl-#{IPlayer::GUI_VERSION}.exe", "pkg"
 end
+
+begin
+  require 'rubygems'
+  require 'jeweler'
+  Jeweler::Tasks.new do |gemspec|
+    gemspec.name = "iplayer-dl"
+    gemspec.summary = "Downloads DRM-free video (h.264) and audio (MP3) files from the BBC iPlayer service by pretending to be an iPhone."
+    gemspec.homepage = "http://po-ru.com/projects/iplayer-downloader/"
+    gemspec.description = "Downloads DRM-free video (h.264) and audio (MP3) files from the BBC iPlayer service by pretending to be an iPhone."
+    gemspec.authors = ["Paul Battley"]
+  end
+rescue LoadError
+  puts "Jeweler not available. Install it with: sudo gem install technicalpickles-jeweler -s http://gems.github.com"
+end
