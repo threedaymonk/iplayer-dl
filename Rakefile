@@ -11,7 +11,7 @@ PKG_NAME = 'iplayer-dl'
 
 PKG_FILES = %w[ COPYING README setup.rb Rakefile ]
 Find.find('lib/', 'test/', 'bin/', 'share/') do |f|
-  if FileTest.directory?(f) and f =~ /\.svn/
+  if FileTest.directory?(f) and File.basename(f) =~ /^\./
     Find.prune
   else
     PKG_FILES << f
@@ -25,7 +25,7 @@ EXE_FILES = PKG_FILES + %w[ application.ico init.rb ]
 task :default => :test
 
 Rake::TestTask.new do |t|
-  t.libs << "test" 
+  t.libs << "test"
   t.test_files = FileList['test/test_*.rb']
 end
 
@@ -50,4 +50,46 @@ task :exe do |t|
   rm_rf build_dir
   mkdir_p 'pkg'
   mv "ipdl-#{IPlayer::GUI_VERSION}.exe", "pkg"
+end
+
+begin
+  require "rake/gempackagetask"
+
+  spec = Gem::Specification.new do |s|
+    # Change these as appropriate
+    s.name              = "iplayer-dl"
+    s.version           = IPlayer::VERSION
+    s.summary           = "Download iPlayer content"
+    s.author            = "Paul Battley"
+    s.email             = "pbattley@gmail.com"
+    s.homepage          = "http://po-ru.com/projects/iplayer-downloader"
+
+    s.has_rdoc          = false
+
+    # Add any extra files to include in the gem
+    s.files             = PKG_FILES
+    s.executables       = ["iplayer-dl"]
+
+    s.require_paths     = ["lib"]
+
+    # If you want to depend on other gems, add them here, along with any
+    # relevant versions
+    # s.add_dependency("some_other_gem", "~> 0.1.0")
+
+    # If your tests use any gems, include them here
+    s.add_development_dependency("mocha")
+  end
+
+  # This task actually builds the gem. We also regenerate a static
+  # .gemspec file, which is useful if something (i.e. GitHub) will
+  # be automatically building a gem for this project. If you're not
+  # using GitHub, edit as appropriate.
+  Rake::GemPackageTask.new(spec) do |pkg|
+    pkg.gem_spec = spec
+
+    # Generate the gemspec file for github.
+    file = File.dirname(__FILE__) + "/#{spec.name}.gemspec"
+    File.open(file, "w") {|f| f << spec.to_ruby }
+  end
+rescue LoadError
 end
