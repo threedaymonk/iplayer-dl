@@ -1,23 +1,13 @@
 require 'iplayer/gui/frame'
 require 'iplayer/errors'
+require 'iplayer/translations'
 
 module IPlayer
 module GUI
 class MainFrame < Frame
   include IPlayer::Errors
-
-  L18N = {
-    :pid               => "Programme ID",
-    :stop_button       => "Stop",
-    :download_button   => "Download ...",
-    :about_button      => "About ...",
-    :status_waiting    => "Waiting",
-    :pid_tool_tip      => "Use either the short alphanumeric programme identifier or the URL of the viewing page on the iPlayer website.",
-    :status_waiting    => "Waiting",
-    :no_pid_given      => "You must specify a programme ID before I can download it.",
-    :save_dialog_title => "Save As",
-    :file_types        => "iPlayer programmes",
-  }
+  include Translations
+  translation_namespace :gui
 
   def initialize(app)
     @app = app
@@ -25,10 +15,6 @@ class MainFrame < Frame
 
     set_properties
     do_layout
-  end
-
-  def t(key)
-    L18N[key]
   end
 
   def set_properties
@@ -105,9 +91,9 @@ class MainFrame < Frame
           set_status_text(percentage+"%", 2)
         end
       rescue RecognizedError => error
-        message_box(error.to_str, :title => 'Error')
+        message_box(error.to_str, :title => t(:error_title))
       rescue Exception => error
-        message_box("#{error.message} (#{error.class})\n#{error.backtrace.first}", :title => 'Error')
+        message_box("#{error.message} (#{error.class})\n#{error.backtrace.first}", :title => t(:error_title))
       end
       @stop_button.disable
     end
