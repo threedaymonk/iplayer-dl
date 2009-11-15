@@ -1,36 +1,34 @@
-require 'wx'
+require 'iplayer/gui/frame'
 require 'iplayer/errors'
 
 module IPlayer
 module GUI
-class MainFrame < Wx::Frame
-  include Wx
+class MainFrame < Frame
   include IPlayer::Errors
+
+  L18N = {
+    :pid               => "Programme ID",
+    :stop_button       => "Stop",
+    :download_button   => "Download ...",
+    :about_button      => "About ...",
+    :status_waiting    => "Waiting",
+    :pid_tool_tip      => "Use either the short alphanumeric programme identifier or the URL of the viewing page on the iPlayer website.",
+    :status_waiting    => "Waiting",
+    :no_pid_given      => "You must specify a programme ID before I can download it.",
+    :save_dialog_title => "Save As",
+    :file_types        => "iPlayer programmes",
+  }
 
   def initialize(app)
     @app = app
-
     super(nil, -1, @app.name, DEFAULT_POSITION, DEFAULT_SIZE, CAPTION|MINIMIZE_BOX|CLOSE_BOX|SYSTEM_MENU)
-
-    @pid_label = StaticText.new(self, -1, "Programme ID")
-    @pid_field = TextCtrl.new(self, -1, "", DEFAULT_POSITION, Size.new(300,-1))
-    @pid_field.set_tool_tip("Use either the short alphanumeric programme identifier or the URL of the viewing page on the iPlayer website.")
-    @download_progress = Gauge.new(self, -1, 1, DEFAULT_POSITION, DEFAULT_SIZE, GA_HORIZONTAL|GA_SMOOTH)
-    @stop_button = Button.new(self, -1, "Stop")
-    evt_button(@stop_button.get_id){ |e| stop_button_clicked(e)   }
-    @stop_button.disable
-    @download_button = Button.new(self, -1, "Download...")
-    evt_button(@download_button.get_id){ |e| download_button_clicked(e) }
-    @about_button = Button.new(self, -1, "About...")
-    evt_button(@about_button.get_id){ |e| about_button_clicked(e) }
-    @status_bar = StatusBar.new(self, -1, 0)
-    @status_bar.set_fields_count(3)
-    @status_bar.set_status_widths([-1, 60, 60])
-    set_status_bar(@status_bar)
-    @status_bar.set_status_text("Waiting", 0)
 
     set_properties
     do_layout
+  end
+
+  def t(key)
+    L18N[key]
   end
 
   def set_properties
@@ -44,34 +42,40 @@ class MainFrame < Wx::Frame
   end
 
   def do_layout
-    sizer_main = BoxSizer.new(VERTICAL)
-    sizer_buttons = BoxSizer.new(HORIZONTAL)
-    sizer_input = BoxSizer.new(HORIZONTAL)
-    sizer_input.add(@pid_label, 0, ALL|ALIGN_CENTER_VERTICAL, 4)
-    sizer_input.add(@pid_field, 0, ALL|EXPAND|ALIGN_CENTER_VERTICAL, 4)
-    sizer_main.add(sizer_input, 0, EXPAND, 0)
-    sizer_main.add(@download_progress, 0, ALL|EXPAND, 4)
-    sizer_buttons.add(@about_button, 0, ALL, 4)
-    sizer_buttons.add(@stop_button, 0, ALL, 4)
-    sizer_buttons.add(@download_button, 0, ALL, 4)
-    sizer_main.add(sizer_buttons, 0, ALIGN_RIGHT|ALIGN_CENTER_HORIZONTAL, 0)
+    sizer_main = v_sizer{ |main|
+      main.h_sizer(:flags => EXPAND){ |input|
+        input.label(t(:pid), :flags => ALL|ALIGN_CENTER_VERTICAL)
+        @pid_field = input.field("",
+                     :width    => 300,
+                     :tool_tip => t(:pid_tool_tip),
+                     :flags    => ALL|EXPAND|ALIGN_CENTER_VERTICAL)
+      }
+      @download_progress = main.gauge(:flags => ALL|EXPAND)
+      main.h_sizer(:flags => ALIGN_RIGHT|ALIGN_CENTER_HORIZONTAL){ |buttons|
+        buttons.button(:show_about, t(:about_button))
+        @stop_button = buttons.button(:abort_download, t(:stop_button))
+        @download_button = buttons.button(:begin_download, t(:download_button))
+      }
+    }
+    status_bar([AUTO, 60, 60])
     self.set_sizer(sizer_main)
     sizer_main.fit(self)
     layout
     centre
+    set_status_text(t(:status_waiting), 0)
   end
 
-  def stop_button_clicked(event)
+  def abort_download(event)
     @app.stop_download!
-    @status_bar.set_status_text("Stopped", 0)
+    set_status_text(t(:status_stopped), 0)
     @download_button.enable
     @stop_button.disable
   end
 
-  def download_button_clicked(event)
+  def begin_download(event)
     pid = @pid_field.get_value
     if pid.empty?
-      message_box('You must specify a programme ID before I can download it.')
+      message_box(t(:no_pid_given))
       return
     else
       begin
@@ -85,11 +89,11 @@ class MainFrame < Wx::Frame
     @download_button.disable
     filename = @app.get_default_filename(pid)
 
-    fd = FileDialog.new(nil, 'Save as', '', filename, 'iPlayer Programmes|*.mov;*.mp3|', FD_SAVE)
+    fd = FileDialog.new(nil, t(:save_dialog_title), '', filename, "#{t(:file_types)}|*.mov;*.mp3|", FD_SAVE)
 
     if fd.show_modal == ID_OK
       path = fd.get_path
-      @status_bar.set_status_text(File.basename(path), 0)
+      set_status_text(File.basename(path), 0)
       @download_button.disable
       @stop_button.enable
       begin
@@ -97,8 +101,8 @@ class MainFrame < Wx::Frame
           @download_progress.set_range(max)
           @download_progress.set_value(position)
           percentage = "%.1f" % [((1000.0 * position) / max).round / 10.0]
-          @status_bar.set_status_text("#{(max.to_f / 2**20).round} MiB", 1) 
-          @status_bar.set_status_text(percentage+"%", 2) 
+          set_status_text("#{(max.to_f / 2**20).round} MiB", 1)
+          set_status_text(percentage+"%", 2)
         end
       rescue RecognizedError => error
         message_box(error.to_str, :title => 'Error')
@@ -110,7 +114,7 @@ class MainFrame < Wx::Frame
     @download_button.enable
   end
 
-  def about_button_clicked(event)
+  def show_about(event)
     @app.show_about_box
   end
 
