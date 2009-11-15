@@ -43,7 +43,7 @@ class Downloader
     options['Cookie'] = cookies if cookies
     browser.get(url, options, &blk)
   end
-  
+
   def available_versions
     metadata.versions.map{ |name, vpid| Version.new(name, vpid) }
   end
@@ -58,12 +58,12 @@ class Downloader
     else
       offset = 0
     end
-    
-    File.open(path, 'a+b') do |io|    
+
+    File.open(path, 'a+b') do |io|
       location = real_stream_location(version_pid)
       content_length = content_length_from_initial_request(location)
       yield(offset, content_length) if block_given?
-      
+
       offset.step(content_length - 1, MAX_SEGMENT) do |first_byte|
         last_byte = [first_byte + MAX_SEGMENT - 1, content_length - 1].min
         get(location, Browser::QT_UA, 'Range'=>"bytes=#{first_byte}-#{last_byte}") do |response|
@@ -97,7 +97,7 @@ private
     r = (rand * 10000000).floor
     selector = SELECTOR_URL % [version_pid, r]
     response = get(selector, Browser::QT_UA, 'Range'=>'bytes=0-1')
-    
+
     # It redirects us to the real stream location
     location = response.to_hash['location']
     if location =~ /error\.shtml/

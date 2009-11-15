@@ -5,7 +5,7 @@ module Errors
 
   class ParsingError < RecognizedError
     def to_str
-      "Unable to parse the programme page. Perhaps the iPlayer has changed." 
+      "Unable to parse the programme page. Perhaps the iPlayer has changed."
     end
   end
 
@@ -22,7 +22,7 @@ module Errors
       "If it's new, try again later."
     end
   end
-  
+
   class MP4Unavailable < RecognizedError
     def to_str
       "This programme is not currently available in an MP3 or MPEG4 version."

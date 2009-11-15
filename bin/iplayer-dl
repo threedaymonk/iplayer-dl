@@ -134,7 +134,7 @@ pids.each_with_index do |pid, i|
           $stderr.puts "Resuming download at #{position} bytes." if position > 0
           first_chunk = false
         end
-        
+
         percentage = "%.1f" % [((1000 * position) / max) / 10.0]
         if percentage != old_percentage
           old_percentage = percentage
