@@ -3,8 +3,8 @@
 # Download iPlayer programmes by spoofing an iPhone
 # Paul Battley - http://po-ru.com/
 #
-# Get the latest version via subversion:
-# svn co http://paulbattley.googlecode.com/svn/iplayer-dl
+# Get the latest version:
+# http://github.com/threedaymonk/iplayer-dl
 
 require 'iplayer'
 require 'optparse'
