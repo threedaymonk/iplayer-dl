@@ -1,11 +1,11 @@
-require 'tempfile'
+require 'cgi'
 
 module IPlayer
 class Downloader
 
   IPHONE_URL     = 'http://www.bbc.co.uk/mobile/iplayer/'
+  EPISODE_URL    = 'http://www.bbc.co.uk/mobile/iplayer/episode/%s'
   SELECTOR_URL   = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
-  BUG_URL        = 'http://www.bbc.co.uk/iplayer/framework/img/o.gif?%d'
   MAX_SEGMENT    = 4 * 1024 * 1024
   COPY_BUFFER    = 4 * 1024 * 1024
 
@@ -60,7 +60,7 @@ class Downloader
     end
 
     File.open(path, 'a+b') do |io|
-      location = real_stream_location(version_pid)
+      location = real_stream_location(@pid)
       content_length = content_length_from_initial_request(location)
       yield(offset, content_length) if block_given?
 
@@ -85,25 +85,23 @@ private
     self.cookies = response.cookies.join('; ')
   end
 
-  def request_image_bugs
-    get(BUG_URL % [(rand * 100000).floor], Browser::IPHONE_UA)
+  def request_episode_page(pid)
+    response = get(EPISODE_URL % pid, Browser::IPHONE_UA)
+    raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
+    response.body
   end
 
-  def real_stream_location(version_pid)
+  def real_stream_location(pid)
     request_iphone_page
-    request_image_bugs
+    html = request_episode_page(pid)
+    location = html[%r{http://download\.iplayer\.bbc\.co\.uk/iplayer_streaming[^"']+}]
 
-    # Get the auth URL
-    r = (rand * 10000000).floor
-    selector = SELECTOR_URL % [version_pid, r]
-    response = get(selector, Browser::QT_UA, 'Range'=>'bytes=0-1')
-
-    # It redirects us to the real stream location
-    location = response.to_hash['location']
-    if location =~ /error\.shtml/
+    unless location
       raise FileUnavailable
     end
-    return location
+
+    # The Beeb appear not to believe in escaping URLs, but let's unescape them in case they have an outbreak of standards compliance:
+    CGI.unescapeHTML(location)
   end
 
   def content_length_from_initial_request(location)
