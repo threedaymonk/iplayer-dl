@@ -56,7 +56,7 @@ class App < Wx::App
       filetype = metadata.filetype
     rescue MetadataError
       title    = pid
-      filetype = 'mov'
+      filetype = VIDEO_FILETYPE
     end
     "#{ title }.#{ filetype }".gsub(/[^a-z0-9 \-\.]+/i, '')
   end

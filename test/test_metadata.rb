@@ -5,7 +5,7 @@ require 'mocha'
 
 class MetadataTest < Test::Unit::TestCase
 
-  def test_should_return_mov_for_tv_filetype
+  def test_should_return_mp4_for_tv_filetype
     xml = %{
       <?xml version="1.0" encoding="UTF-8"?>
       <playlist xmlns="http://bbc.co.uk/2008/emp/playlist" revision="1">
@@ -16,7 +16,7 @@ class MetadataTest < Test::Unit::TestCase
     pid = 'abc'
     browser = stub(:get => stub(:body => xml))
     metadata = IPlayer::Metadata.new(pid, browser)
-    assert_equal 'mov', metadata.filetype
+    assert_equal 'mp4', metadata.filetype
   end
 
   def test_should_return_mp3_for_radio_filetype

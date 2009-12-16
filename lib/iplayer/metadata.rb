@@ -1,5 +1,6 @@
 require 'rexml/document'
 require 'iplayer/errors'
+require 'iplayer/constants'
 
 module IPlayer
 class Metadata
@@ -21,7 +22,7 @@ class Metadata
   end
 
   def filetype
-    radio? ? 'mp3' : 'mov'
+    radio? ? AUDIO_FILETYPE : VIDEO_FILETYPE
   end
 
   def versions

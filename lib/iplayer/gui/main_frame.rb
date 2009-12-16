@@ -75,7 +75,7 @@ class MainFrame < Frame
     @download_button.disable
     filename = @app.get_default_filename(pid)
 
-    fd = FileDialog.new(nil, t(:save_dialog_title), '', filename, "#{t(:file_types)}|*.mov;*.mp3|", FD_SAVE)
+    fd = FileDialog.new(nil, t(:save_dialog_title), '', filename, "#{t(:file_types)}|*.#{VIDEO_FILETYPE};*.#{AUDIO_FILETYPE}|", FD_SAVE)
 
     if fd.show_modal == ID_OK
       path = fd.get_path
