@@ -1,3 +1,6 @@
 /pkg
 /ResHacker.*
 /rubyscript2exe.rb
+*.mov
+*.mp4
+*.mp3
