@@ -22,8 +22,8 @@ module IPlayer
 class Browser
 
   # Used by Safari Mobile
-  IPHONE_UA  = 'Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420+ '+
-               '(KHTML, like Gecko) Version/3.0 Mobile/1A543a Safari/419.3'
+  IPHONE_UA  = 'Mozilla/5.0 (iPhone; U; CPU iPhone OS 3_1_2 like Mac OS X; en-us)'+
+               'AppleWebKit/528.18 (KHTML, like Gecko) Version/4.0 Mobile/7D11 Safari/528.16'
 
   # Used by Quicktime
   QT_UA      = 'Apple iPhone v1.1.4 CoreMedia v1.0.0.4A102'
