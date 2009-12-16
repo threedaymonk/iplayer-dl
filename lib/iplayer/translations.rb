@@ -6,9 +6,9 @@ module Translations
       :download_button   => "Download ...",
       :about_button      => "About ...",
       :status_waiting    => "Waiting",
+      :status_stopped    => "Stopped",
       :pid_tool_tip      => "Use either the short alphanumeric programme identifier or "+
                             "the URL of the viewing page on the iPlayer website.",
-      :status_waiting    => "Waiting",
       :no_pid_given      => "You must specify a programme ID before I can download it.",
       :save_dialog_title => "Save As",
       :file_types        => "iPlayer programmes",
@@ -52,6 +52,8 @@ module Translations
     [self.class.get_translation_namespace, key.to_s].flatten.compact.join(".").split(".").inject(STRINGS){ |hash, subkey|
       hash[subkey.to_sym]
     }.gsub(/\{\{([^\}]+)\}\}/){ methods[$1.to_sym] }
+  rescue
+    "MISSING TRANSLATION: #{key}"
   end
 
   def self.included(klass)
