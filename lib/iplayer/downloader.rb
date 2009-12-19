@@ -45,6 +45,14 @@ class Downloader
     response
   end
 
+  def post(url, data, user_agent, options={}, &blk)
+    options['User-Agent'] = user_agent
+    options['Cookie'] = cookies if cookies
+    response = browser.post(url, data, options, &blk)
+    self.cookies = response.cookies.join('; ')
+    response
+  end
+
   def available_versions
     metadata.versions.map{ |name, vpid| Version.new(name, vpid) }
   end
@@ -83,6 +91,11 @@ private
   def request_episode_page(pid)
     response = get(EPISODE_URL % pid, Browser::IPHONE_UA)
     raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
+    if response.body =~ /isOver\d+/
+      data = "form=guidanceprompt&#$&=1"
+      response = post(EPISODE_URL % pid, data, Browser::IPHONE_UA)
+      raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
+    end
     response.body
   end
 
