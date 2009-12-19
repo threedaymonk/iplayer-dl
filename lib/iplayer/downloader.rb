@@ -3,7 +3,6 @@ require 'cgi'
 module IPlayer
 class Downloader
 
-  IPHONE_URL     = 'http://www.bbc.co.uk/mobile/iplayer/'
   EPISODE_URL    = 'http://www.bbc.co.uk/mobile/iplayer/episode/%s'
   SELECTOR_URL   = 'http://www.bbc.co.uk/mediaselector/3/auth/iplayer_streaming_http_mp4/%s?%s'
   MAX_SEGMENT    = 4 * 1024 * 1024
@@ -41,7 +40,9 @@ class Downloader
   def get(url, user_agent, options={}, &blk)
     options['User-Agent'] = user_agent
     options['Cookie'] = cookies if cookies
-    browser.get(url, options, &blk)
+    response = browser.get(url, options, &blk)
+    self.cookies = response.cookies.join('; ')
+    response
   end
 
   def available_versions
@@ -79,12 +80,6 @@ class Downloader
 
 private
 
-  def request_iphone_page
-    response = get(IPHONE_URL, Browser::IPHONE_UA)
-    raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
-    self.cookies = response.cookies.join('; ')
-  end
-
   def request_episode_page(pid)
     response = get(EPISODE_URL % pid, Browser::IPHONE_UA)
     raise ProgrammeDoesNotExist unless response.is_a?(Net::HTTPSuccess)
@@ -92,7 +87,6 @@ private
   end
 
   def real_stream_location(pid)
-    request_iphone_page
     html = request_episode_page(pid)
     location = html[%r{http://download\.iplayer\.bbc\.co\.uk/iplayer_streaming[^"']+}]
 
