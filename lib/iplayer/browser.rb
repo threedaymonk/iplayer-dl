@@ -43,20 +43,35 @@ class Browser
     @http_class = http_class
   end
 
+  def post(location, data, headers={}, &blk)
+    request(:post, location, data, headers, &blk)
+  end
+
   def get(location, headers={}, &blk)
+    request(:get, location, nil, headers, &blk)
+  end
+
+  def request(type, location, data, headers, &blk)
     url = URI.parse(location)
     http = @http_class.new(url.host, url.port)
     path = url.path
     if url.query
       path << '?' << url.query
     end
+    headers_to_send = DEFAULT_HEADERS.merge(headers)
     if defined? DEBUG
       puts path
-      DEFAULT_HEADERS.merge(headers).each do |k,v|
+      headers_to_send.each do |k,v|
         puts " -> #{k}: #{v}"
       end
     end
-    response = http.request_get(path, DEFAULT_HEADERS.merge(headers), &blk)
+    response =
+      case type
+      when :get
+        http.request_get(path, headers_to_send, &blk)
+      when :post
+        http.request_post(path, data, headers_to_send, &blk)
+      end
     if defined? DEBUG
       response.each do |k,v|
         puts "<-  #{k}: #{v}"
