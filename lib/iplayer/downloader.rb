@@ -101,7 +101,7 @@ private
 
   def real_stream_location(pid)
     html = request_episode_page(pid)
-    location = html[%r{http://download\.iplayer\.bbc\.co\.uk/iplayer_streaming[^"']+}]
+    location = html[%r{<embed[^>]*?href="(http://[^"]+)}, 1]
 
     unless location
       raise FileUnavailable
