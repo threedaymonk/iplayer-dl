@@ -3,13 +3,13 @@ require 'uri'
 
 class Net::HTTPResponse # Monkey-patch in some 21st-century functionality
   include Enumerable
-  
+
   def cookies
     inject([]){ |acc, (key, value)|
       key == 'set-cookie' ? acc << value.split(/;/).first : acc
     }
   end
-  
+
   def to_hash
     @to_hash ||= inject({}){ |hash, (key, value)|
       hash[key] = value

@@ -31,8 +31,8 @@ class App < Wx::App
     downloader = Downloader.new(@browser, pid)
     available_versions = downloader.available_versions
     raise MP4Unavailable if available_versions.empty?
-    version = available_versions.sort_by{ |v| 
-      @options[:type_preference].index(v.name) || 100 
+    version = available_versions.sort_by{ |v|
+      @options[:type_preference].index(v.name) || 100
     }.first
 
     self.yield
