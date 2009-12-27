@@ -18,7 +18,7 @@ class Metadata
   end
 
   def full_title
-    mixed_title.gsub(/\s*:\s*/, ' - ')
+    dmy_to_ymd(mixed_title).gsub(/\s*:\s*/, ' - ')
   end
 
   def filetype
@@ -36,7 +36,6 @@ class Metadata
   end
 
 private
-
   def metadata
     @metadata ||= REXML::Document.new( @browser.get(METADATA_URL % @pid).body )
   rescue Exception => e
@@ -60,5 +59,9 @@ private
     programme_type == 'radioProgramme'
   end
 
+  # convert UK date format to YYYY-MM-DD so that it can be sorted easily
+  def dmy_to_ymd(s)
+    s.sub(%r[(\d{2})/(\d{2})/(\d{4})], "\\3-\\2-\\1")
+  end
 end
 end

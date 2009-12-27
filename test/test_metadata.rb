@@ -72,4 +72,39 @@ class MetadataTest < Test::Unit::TestCase
     expected = {'anonymous' => 'b00htg55'}
     assert_equal expected, metadata.versions
   end
+
+  def test_should_rearrange_DDMMYYYY_dates_to_YYYYMMDD
+    xml = %{
+      <playlist xmlns="http://bbc.co.uk/2008/emp/playlist" revision="1">
+        <config>
+          <plugin name="iPlayerLiveStats"/>
+          <plugin name="spacesReporting"/>
+        </config>
+        <id>tag:bbc.co.uk,2008:pips:b00769ss:playlist</id>
+        <link rel="self" href="http://www.bbc.co.uk/iplayer/playlist/b00769ss/"/>
+        <link rel="alternate" href="http://www.bbc.co.uk/iplayer/episode/b00769ss/That_Reminds_Me_01_10_2002/"/>
+        <link rel="holding" href="http://node2.bbcimg.co.uk/iplayer/images/episode/b00769ss_640_360.jpg" height="360" width="640" type="image/jpeg" />
+        <title>That Reminds Me: 01/10/2002</title>
+        <summary>The late Ludovic Kennedy reminisces about his life. He remembers a very Eton schoolboy prank involving hiring a plane, and shares memories of his favourite interviewees.</summary>
+        <updated>2009-12-10T00:05:48Z</updated>
+        <rights>
+          <right name="embed">unset</right>
+        </rights>
+        <item kind="radioProgramme" duration="1800" identifier="b001x3rr" group="b00769ss" publisher="pips">
+          <title>That Reminds Me: 01/10/2002</title>
+          <broadcast>2009-12-24T20:00:00Z</broadcast>
+          <service id="bbc_radio_four" href="http://www.bbc.co.uk/iplayer/bbc_radio_four">BBC Radio 4</service>
+          <masterbrand id="bbc_radio_four" href="http://www.bbc.co.uk/iplayer/bbc_radio_four">BBC Radio 4</masterbrand>
+          <passionSite href="http://www.bbc.co.uk/programmes/b00dzkk0/microsite">That Reminds Me</passionSite>
+          <alternate id="default" />
+          <mediator identifier="b001x3rr" name="pips"/>
+        </item>
+      </playlist>
+    }
+    pid = 'abc'
+    browser = stub(:get => stub(:body => xml))
+    metadata = IPlayer::Metadata.new(pid, browser)
+    assert_match /2002-10-01/, metadata.full_title
+  end
+
 end
