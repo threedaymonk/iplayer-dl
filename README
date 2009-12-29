@@ -12,3 +12,4 @@ Windows users should omit 'sudo' in the second line.
 You can then run the downloader just by typing:
 
   iplayer-dl
+
