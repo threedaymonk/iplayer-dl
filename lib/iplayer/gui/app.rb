@@ -15,7 +15,7 @@ class App < Wx::App
     if http_proxy = @options[:http_proxy]
       http_proxy = 'http://' + http_proxy unless http_proxy =~ %r{^http://}
       u = URI.parse(http_proxy)
-      http = Net::HTTP::Proxy(u.host, u.port)
+      http = Net::HTTP::Proxy(u.host, u.port, u.user, u.password)
     else
       http = Net::HTTP
     end
