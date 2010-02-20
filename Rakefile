@@ -88,10 +88,6 @@ begin
   # using GitHub, edit as appropriate.
   Rake::GemPackageTask.new(spec) do |pkg|
     pkg.gem_spec = spec
-
-    # Generate the gemspec file for github.
-    file = File.dirname(__FILE__) + "/#{spec.name}.gemspec"
-    File.open(file, "w") {|f| f << spec.to_ruby }
   end
 rescue LoadError
 end
