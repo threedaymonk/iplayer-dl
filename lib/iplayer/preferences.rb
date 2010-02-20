@@ -3,7 +3,7 @@ require 'yaml'
 module IPlayer
 class Preferences
 
-  def initialize(env=ENV, platform=PLATFORM)
+  def initialize(env=ENV, platform=RUBY_PLATFORM)
     @env      = env
     @platform = platform
     @hash     = {}
